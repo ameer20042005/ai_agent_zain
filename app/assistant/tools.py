@@ -23,6 +23,7 @@ from typing import Optional
 from app.agent.amounts import parse_amounts
 from app.agent.resolver import CATEGORY_NAMES, find_phone, mask_phone
 from app.agent.wallet_client import WalletClient
+from app.assistant.dialect import IRAQI_DIALECT
 from app.config import settings
 
 
@@ -99,7 +100,7 @@ TOOLS = [
 # الشرح: التعليمات الثابتة بالإنجليزي (الموديلات الصغيرة تلتزم بيها أكثر)،
 # والرد نفسه يطلع بالعراقي. هذي مو قوالب ردود — هي "شخصية" الوكيل وحدوده،
 # والموديل يكتب كل جملة بنفسه.
-RULES = """You are "زين", a warm, smart wallet assistant for an Iraqi user. Talk naturally in Iraqi Arabic, like a helpful friend: short, clear, no robotic phrases. Write amounts with Western digits and commas, e.g. 250,000 دينار (never ١٢٣).
+RULES = """You are "زين", a warm, smart wallet assistant for an Iraqi user. Talk naturally in Iraqi Arabic (see "Iraqi dialect" below), like a helpful friend: short, clear, no robotic phrases. Write amounts with Western digits and commas, e.g. 250,000 دينار (never ١٢٣).
 
 What you can do: send money to the user's contacts, pay their bills, and answer about balance and recent transactions. For anything else (top-up cards, loans, withdrawals...) say kindly you can't do it here. Small talk is fine.
 
@@ -131,11 +132,13 @@ class ToolRunner:
 
     # الشرح: البرومبت يتبنى من جديد بكل خطوة، حتى الموديل يشوف دائماً الرصيد
     # الحالي والبطاقات المعلّقة الحالية (مو نسخة قديمة من أول المحادثة).
+    # الترتيب: الأجزاء الثابتة أولاً (RULES ثم اللهجة) وبعدها المتغيرة — حتى
+    # يبقى أول البرومبت نفسه بكل طلب ويستفاد من الـ prefix cache.
     async def system_prompt(self, s) -> str:
         user = await self.wallet.user(s.user_id)
         contacts = await self.wallet.contacts(s.user_id)
         bills = await self.wallet.bill_accounts(s.user_id)
-        lines = [RULES, "", f"User: {user['name']} · balance: {user['balance']:,} IQD", "", "Contacts:"]
+        lines = [RULES, "", IRAQI_DIALECT, "", f"User: {user['name']} · balance: {user['balance']:,} IQD", "", "Contacts:"]
         for c in contacts:
             extra = f" · nickname: {c['nickname']}" if c["nickname"] else ""
             wallet_note = "" if c["wallet_user_id"] else " · has NO wallet"
