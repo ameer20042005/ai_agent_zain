@@ -115,6 +115,10 @@ class LLMEngine:
             "temperature": temperature,
             **extra,
         }
+        # الشرح: إذا الإعدادات تطلب مستوى تفكير (مثل "none" مع LM Studio) نضيفه
+        # للطلب. setdefault تخلي أي قيمة يمررها الإيند بوينت بنفسه هي الغالبة.
+        if settings.llm_reasoning_effort:
+            body.setdefault("reasoning_effort", settings.llm_reasoning_effort)
         resp = await self._client.post("/chat/completions", json=body)
         resp.raise_for_status()
         return resp.json()

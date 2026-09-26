@@ -11,9 +11,11 @@ main.py يربط كل الراوترات بالقائمة تلقائياً، ف�
 # القائمة ويسوي app.include_router لكل واحد — هيچ إضافة ملف جديد تحتاج
 # سطرين هنا فقط.
 from app.endpoints.agent import router as agent_router
+from app.endpoints.assistant import router as assistant_router
 from app.endpoints.chat import router as chat_router
 
 all_routers = [
     chat_router,
     agent_router,
+    assistant_router,
 ]

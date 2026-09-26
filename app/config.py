@@ -26,11 +26,23 @@ class Settings:
     # اسم مستودع الموديل على Hugging Face. vLLM ينزّله تلقائياً بأول تشغيل
     # (يُخزَّن بكاش HF ~/.cache/huggingface) ثم يحمّله على الـ GPU.
     # نفس الاسم يُرسل بحقل "model" بكل طلب /v1/chat/completions.
-    model_name: str = "ameer4wisam/gemma-iraqi-10k-merged"
+    # MODEL_NAME من البيئة يبدّله بدون تعديل الكود — مثلاً اسم الموديل المحمّل
+    # بـ LM Studio عند التشغيل المحلي (start_local.ps1).
+    model_name: str = field(default_factory=lambda: os.environ.get(
+        "MODEL_NAME", "ameer4wisam/gemma-iraqi-10k-merged"))
 
     # عنوان خادم vLLM المتوافق مع OpenAI. الباك اند مجرد عميل HTTP له.
     # لازم المنفذ هنا يطابق vllm_port بالأسفل.
-    vllm_base_url: str = "http://127.0.0.1:18001/v1"
+    # VLLM_BASE_URL من البيئة يوجّهه لأي خادم متوافق مع OpenAI، مثل LM Studio
+    # (http://localhost:1234/v1).
+    vllm_base_url: str = field(default_factory=lambda: os.environ.get(
+        "VLLM_BASE_URL", "http://127.0.0.1:18001/v1"))
+
+    # الشرح: موديلات Gemma 4 أحياناً "تفكر" (reasoning) قبل الرد، والتفكير ياكل
+    # من max_tokens فيقطع الـ JSON بالنص. قيمة "none" تطفي التفكير بـ LM Studio.
+    # فارغ = ما نرسل الحقل أصلاً (الافتراضي، حتى vLLM ما يرفض قيمة ما يعرفها).
+    llm_reasoning_effort: str = field(default_factory=lambda: os.environ.get(
+        "LLM_REASONING_EFFORT", ""))
 
     # توكن Hugging Face — مطلوب إذا الموديل gated (مثل Gemma) أو المستودع خاص.
     # يُقرأ من البيئة فقط حتى ما ينرفع سر حقيقي مع الكود.
