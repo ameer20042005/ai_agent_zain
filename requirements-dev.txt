@@ -1,0 +1,3 @@
+# للاختبارات فقط (pytest). التشغيل ما يحتاجها.
+-r requirements.txt
+pytest==9.1.1

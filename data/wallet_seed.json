@@ -1,0 +1,68 @@
+{
+  "settings": {
+    "transfer_fee": 250,
+    "min_amount": 250,
+    "per_transaction_limit": 2000000,
+    "daily_limit": 3000000
+  },
+  "users": [
+    {"id": "u1",  "name": "مصطفى كاظم الربيعي", "phone": "07701000001", "balance": 400000,  "status": "active"},
+    {"id": "u2",  "name": "أحمد علي حسين",      "phone": "07702000001", "balance": 120000,  "status": "active"},
+    {"id": "u3",  "name": "أحمد كريم جواد",     "phone": "07702000002", "balance": 50000,   "status": "active"},
+    {"id": "u4",  "name": "علي حسين كاظم",      "phone": "07702000003", "balance": 80000,   "status": "active"},
+    {"id": "u5",  "name": "علي حسن عبد الله",   "phone": "07702000004", "balance": 30000,   "status": "active"},
+    {"id": "u6",  "name": "زينب محمد كاظم",     "phone": "07702000005", "balance": 95000,   "status": "active"},
+    {"id": "u7",  "name": "زينة عباس فاضل",     "phone": "07702000006", "balance": 15000,   "status": "active"},
+    {"id": "u8",  "name": "سعاد جبار ناصر",     "phone": "07702000007", "balance": 200000,  "status": "active"},
+    {"id": "u9",  "name": "محمد جاسم عبيد",     "phone": "07702000009", "balance": 60000,   "status": "active"},
+    {"id": "u10", "name": "مرتضى عادل سلمان",   "phone": "07702000010", "balance": 10000,   "status": "active"},
+    {"id": "u11", "name": "حسين الساعدي",       "phone": "07702000011", "balance": 0,       "status": "frozen"},
+    {"id": "u12", "name": "نصير عبد الحسين",    "phone": "07702000012", "balance": 45000,   "status": "active"},
+    {"id": "u13", "name": "رسل حيدر",           "phone": "07803000013", "balance": 5000,    "status": "active"}
+  ],
+  "contacts": [
+    {"id": "c1",  "owner_id": "u1", "name": "أحمد علي حسين",    "phone": "07702000001", "relation": "صديق",       "nickname": null,       "wallet_user_id": "u2"},
+    {"id": "c2",  "owner_id": "u1", "name": "أحمد كريم",        "phone": "07702000002", "relation": "زميل الشغل", "nickname": null,       "wallet_user_id": "u3"},
+    {"id": "c3",  "owner_id": "u1", "name": "علي حسين",         "phone": "07702000003", "relation": "اخوي",       "nickname": null,       "wallet_user_id": "u4"},
+    {"id": "c4",  "owner_id": "u1", "name": "علي حسن",          "phone": "07702000004", "relation": "جار",        "nickname": null,       "wallet_user_id": "u5"},
+    {"id": "c5",  "owner_id": "u1", "name": "زينب محمد",        "phone": "07702000005", "relation": "اختي",       "nickname": null,       "wallet_user_id": "u6"},
+    {"id": "c6",  "owner_id": "u1", "name": "زينة عباس",        "phone": "07702000006", "relation": "زميلة",      "nickname": null,       "wallet_user_id": "u7"},
+    {"id": "c7",  "owner_id": "u1", "name": "سعاد جبار",        "phone": "07702000007", "relation": "امي",        "nickname": "الوالدة",  "wallet_user_id": "u8"},
+    {"id": "c8",  "owner_id": "u1", "name": "حيدر الكعبي",      "phone": "07702000008", "relation": "صديق",       "nickname": null,       "wallet_user_id": null},
+    {"id": "c9",  "owner_id": "u1", "name": "محمد جاسم",        "phone": "07702000009", "relation": "ابن عمي",    "nickname": "حمودي",    "wallet_user_id": "u9"},
+    {"id": "c10", "owner_id": "u1", "name": "مرتضى عادل",       "phone": "07702000010", "relation": "صديق",       "nickname": null,       "wallet_user_id": "u10"},
+    {"id": "c11", "owner_id": "u1", "name": "حسين الساعدي",     "phone": "07702000011", "relation": "زميل",       "nickname": null,       "wallet_user_id": "u11"},
+    {"id": "c12", "owner_id": "u1", "name": "نصير عبد الحسين",  "phone": "07702000012", "relation": "جار",        "nickname": "ابو حسين", "wallet_user_id": "u12"},
+    {"id": "c13", "owner_id": "u2", "name": "مصطفى الربيعي",    "phone": "07701000001", "relation": "صديق",       "nickname": null,       "wallet_user_id": "u1"},
+    {"id": "c14", "owner_id": "u2", "name": "أحمد كريم",        "phone": "07702000002", "relation": null,         "nickname": null,       "wallet_user_id": "u3"}
+  ],
+  "billers": [
+    {"id": "b_elec",  "name": "الكهرباء الوطنية",  "category": "electricity", "fee": 0,   "status": "active"},
+    {"id": "b_gen",   "name": "مولدة أبو علي",     "category": "generator",   "fee": 0,   "status": "active"},
+    {"id": "b_water", "name": "ماء بغداد",         "category": "water",       "fee": 0,   "status": "active"},
+    {"id": "b_net1",  "name": "فايبر الرافدين",    "category": "internet",    "fee": 500, "status": "active"},
+    {"id": "b_net2",  "name": "سما نت",            "category": "internet",    "fee": 500, "status": "maintenance"}
+  ],
+  "bill_accounts": [
+    {"id": "ba1", "user_id": "u1", "biller_id": "b_elec",  "label": "البيت", "account_no": "EL-1002345", "due_amount": 87500},
+    {"id": "ba2", "user_id": "u1", "biller_id": "b_elec",  "label": "المحل", "account_no": "EL-7730012", "due_amount": 142000},
+    {"id": "ba3", "user_id": "u1", "biller_id": "b_gen",   "label": "البيت", "account_no": "GN-015",     "due_amount": 60000},
+    {"id": "ba4", "user_id": "u1", "biller_id": "b_water", "label": "البيت", "account_no": "WT-55821",   "due_amount": 0},
+    {"id": "ba5", "user_id": "u1", "biller_id": "b_net2",  "label": "البيت", "account_no": "SN-90311",   "due_amount": 35000},
+    {"id": "ba6", "user_id": "u2", "biller_id": "b_elec",  "label": "البيت", "account_no": "EL-2200981", "due_amount": 64000},
+    {"id": "ba7", "user_id": "u2", "biller_id": "b_net1",  "label": "البيت", "account_no": "FR-11820",   "due_amount": 30000}
+  ],
+  "transactions": [
+    {"user_id": "u1", "type": "transfer_out", "amount": 25000,  "fee": 250, "counterparty": "أحمد علي حسين", "counterparty_ref": "07702000001", "days_ago": 5},
+    {"user_id": "u2", "type": "transfer_in",  "amount": 25000,  "fee": 0,   "counterparty": "مصطفى كاظم الربيعي", "counterparty_ref": "07701000001", "days_ago": 5},
+    {"user_id": "u1", "type": "bill_payment", "amount": 92000,  "fee": 0,   "counterparty": "الكهرباء الوطنية — البيت", "counterparty_ref": "ba1", "days_ago": 31},
+    {"user_id": "u1", "type": "bill_payment", "amount": 60000,  "fee": 0,   "counterparty": "مولدة أبو علي — البيت", "counterparty_ref": "ba3", "days_ago": 29},
+    {"user_id": "u1", "type": "transfer_in",  "amount": 150000, "fee": 0,   "counterparty": "زينب محمد كاظم", "counterparty_ref": "07702000005", "days_ago": 12},
+    {"user_id": "u6", "type": "transfer_out", "amount": 150000, "fee": 250, "counterparty": "مصطفى كاظم الربيعي", "counterparty_ref": "07701000001", "days_ago": 12},
+    {"user_id": "u1", "type": "transfer_out", "amount": 100000, "fee": 250, "counterparty": "سعاد جبار ناصر", "counterparty_ref": "07702000007", "days_ago": 20},
+    {"user_id": "u8", "type": "transfer_in",  "amount": 100000, "fee": 0,   "counterparty": "مصطفى كاظم الربيعي", "counterparty_ref": "07701000001", "days_ago": 20},
+    {"user_id": "u1", "type": "transfer_out", "amount": 10000,  "fee": 250, "counterparty": "أحمد كريم جواد", "counterparty_ref": "07702000002", "days_ago": 40},
+    {"user_id": "u3", "type": "transfer_in",  "amount": 10000,  "fee": 0,   "counterparty": "مصطفى كاظم الربيعي", "counterparty_ref": "07701000001", "days_ago": 40},
+    {"user_id": "u1", "type": "bill_payment", "amount": 38000,  "fee": 0,   "counterparty": "ماء بغداد — البيت", "counterparty_ref": "ba4", "days_ago": 3}
+  ]
+}

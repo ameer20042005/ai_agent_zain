@@ -1,0 +1,10 @@
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pt
+*.safetensors
+.env
+*.sqlite3
+eval/results/results.json
+node_modules/

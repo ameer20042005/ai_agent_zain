@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>وكيل الدفع والتحويل</title>
+<style>
+  :root {
+    --bg: #f4f6f2; --panel: #ffffff; --panel-2: #eef1ea; --border: #d7ddd2;
+    --text: #16201a; --dim: #5b6b60;
+    --accent: #1f7a53; --accent-strong: #14603f; --accent-soft: #dcefe4;
+    --warn: #8a4b12; --warn-soft: #f8ead6; --bad: #b3311d; --bad-soft: #f8dcd6;
+    --user: #1f7a53; --user-text: #ffffff;
+    --shadow: 0 1px 2px rgba(20,30,24,.06), 0 6px 20px rgba(20,30,24,.06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0b1210; --panel: #121c17; --panel-2: #17231d; --border: #263229;
+      --text: #e7efe9; --dim: #8fa096;
+      --accent: #34b57e; --accent-strong: #4fd398; --accent-soft: #173427;
+      --warn: #e7ae62; --warn-soft: #33260f; --bad: #ef7a67; --bad-soft: #3a1c18;
+      --user: #227a55; --user-text: #f2fff8;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: "Segoe UI", Tahoma, "Noto Sans Arabic", system-ui, sans-serif; font-size: 15px;
+  }
+  .num { font-family: Consolas, ui-monospace, monospace; direction: ltr; unicode-bidi: isolate; }
+  button { font: inherit; cursor: pointer; }
+
+  .app { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 16px; max-width: 1180px; margin: 0 auto;
+         padding: 16px; height: 100vh; }
+  header { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  header h1 { font-size: 20px; margin: 0; }
+  header p { margin: 2px 0 0; color: var(--dim); font-size: 13px; }
+  .status { display: flex; gap: 14px; font-size: 13px; color: var(--dim); }
+  .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--dim); margin-inline-end: 5px; }
+  .dot.ok { background: var(--accent); } .dot.wait { background: var(--warn); } .dot.bad { background: var(--bad); }
+
+  .chat { min-width: 0; background: var(--panel); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow);
+          display: flex; flex-direction: column; min-height: 0; }
+  .thread { flex: 1; overflow-y: auto; padding: 18px; display: flex; flex-direction: column; gap: 10px; }
+  .thread > * { flex-shrink: 0; }   /* بدونها البطاقات تنضغط لخطوط لما تطول المحادثة */
+  .msg { max-width: 82%; padding: 10px 14px; border-radius: 14px; line-height: 1.7; white-space: pre-line; }
+  .msg.user { align-self: flex-start; background: var(--user); color: var(--user-text); border-end-start-radius: 4px; }
+  .msg.agent { align-self: flex-end; background: var(--panel-2); border-end-end-radius: 4px; }
+  .msg.error { background: var(--bad-soft); color: var(--bad); }
+  .msg.result { background: var(--accent-soft); }
+  .msg .meta { display: block; font-size: 11px; color: var(--dim); margin-top: 4px; }
+  .options { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .options button { background: var(--panel); border: 1px solid var(--border); color: var(--text);
+                    border-radius: 10px; padding: 7px 12px; text-align: start; }
+  .options button:hover:not(:disabled) { border-color: var(--accent); }
+  .options button:disabled { opacity: .5; cursor: default; }
+
+  /* بطاقة التأكيد: كل شي يحتاجه المستخدم حتى يقرر، بترتيب القراءة */
+  .card { align-self: flex-end; width: min(430px, 92%); background: var(--panel); border: 2px solid var(--accent);
+          border-radius: 14px; overflow: hidden; }
+  .card-head { background: var(--accent-soft); padding: 10px 14px; display: flex; justify-content: space-between;
+               align-items: center; font-weight: 600; }
+  .card-head .timer { font-size: 12px; font-weight: 400; color: var(--dim); }
+  .card-who { padding: 12px 14px 4px; }
+  .card-who .name { font-size: 17px; font-weight: 600; }
+  .card-who .sub { color: var(--dim); font-size: 13px; }
+  .card-amount { padding: 6px 14px 10px; font-size: 28px; font-weight: 700; }
+  .card-amount small { font-size: 14px; font-weight: 400; color: var(--dim); }
+  .rows { margin: 0 14px; border-top: 1px dashed var(--border); padding: 8px 0; }
+  .row { display: flex; justify-content: space-between; padding: 3px 0; font-size: 14px; }
+  .row .k { color: var(--dim); }
+  .row.total { font-weight: 700; }
+  .warns { margin: 0 14px 10px; padding: 8px 10px; background: var(--warn-soft); color: var(--warn);
+           border-radius: 8px; font-size: 13px; line-height: 1.6; }
+  .card-actions { display: flex; gap: 8px; padding: 12px 14px 14px; }
+  .card-actions button { flex: 1; border-radius: 10px; padding: 10px; border: 1px solid var(--border);
+                         background: var(--panel); color: var(--text); }
+  .card-actions .confirm { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  .card-actions .confirm:hover:not(:disabled) { background: var(--accent-strong); }
+  .card-actions button:disabled { opacity: .45; cursor: default; }
+  .card .stamp { padding: 0 14px 12px; font-size: 13px; color: var(--dim); }
+  .card.done { border-color: var(--border); }
+
+  .composer { border-top: 1px solid var(--border); padding: 12px; }
+  .chips { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px; }
+  .chips button { flex: none; background: var(--panel-2); border: 1px solid var(--border); color: var(--text);
+                  border-radius: 999px; padding: 5px 11px; font-size: 13px; }
+  .input-row { display: flex; gap: 8px; }
+  .input-row input { flex: 1; min-width: 0; padding: 11px 14px; border-radius: 10px; border: 1px solid var(--border);
+                     background: var(--bg); color: var(--text); font: inherit; }
+  .input-row button { border: none; border-radius: 10px; padding: 0 16px; background: var(--accent); color: #fff; }
+  .input-row .mic { background: var(--panel-2); color: var(--text); border: 1px solid var(--border); }
+  .input-row .mic.on { background: var(--bad); color: #fff; }
+
+  aside { display: flex; flex-direction: column; gap: 12px; min-height: 0; overflow-y: auto; }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 14px; box-shadow: var(--shadow); }
+  .panel h2 { font-size: 14px; margin: 0 0 10px; color: var(--dim); font-weight: 600; }
+  .balance { font-size: 26px; font-weight: 700; }
+  .tx { display: flex; justify-content: space-between; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .tx:last-child { border-bottom: none; }
+  .tx .out { color: var(--bad); } .tx .in { color: var(--accent); }
+  .tools label { display: block; font-size: 13px; color: var(--dim); margin: 8px 0 4px; }
+  .tools select, .tools button { width: 100%; padding: 8px; border-radius: 8px; border: 1px solid var(--border);
+                                 background: var(--bg); color: var(--text); font: inherit; }
+  .tools button { margin-top: 8px; }
+  .tools .hint { font-size: 12px; color: var(--dim); line-height: 1.6; margin: 6px 0 0; }
+
+  @media (max-width: 860px) {
+    .app { grid-template-columns: minmax(0, 1fr); height: auto; padding: 12px 16px; }
+    .chat { height: 72vh; }
+    header { flex-wrap: wrap; }
+    .msg { max-width: 92%; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div>
+      <h1>وكيل الدفع والتحويل</h1>
+      <p>اكتب أو احچي طلبك بالعراقي — ما يتنفّذ شي بدون تأكيدك.</p>
+    </div>
+    <div class="status">
+      <span><span id="apiDot" class="dot"></span>السيرفر</span>
+      <span><span id="nluDot" class="dot"></span><span id="nluText">الفهم</span></span>
+    </div>
+  </header>
+
+  <section class="chat" aria-label="المحادثة">
+    <div id="thread" class="thread" aria-live="polite"></div>
+    <div class="composer">
+      <div class="chips" id="chips"></div>
+      <form class="input-row" id="form">
+        <input id="input" autocomplete="off" placeholder="مثلاً: دز 50 الف لأحمد" aria-label="رسالتك" />
+        <button type="button" class="mic" id="mic" title="إدخال صوتي" hidden>🎤</button>
+        <button type="submit">إرسال</button>
+      </form>
+    </div>
+  </section>
+
+  <aside>
+    <div class="panel">
+      <h2 id="userName">المحفظة</h2>
+      <div class="balance num" id="balance">—</div>
+    </div>
+    <div class="panel">
+      <h2>آخر العمليات</h2>
+      <div id="txs"></div>
+    </div>
+    <div class="panel tools">
+      <h2>أدوات العرض</h2>
+      <label for="fault">محاكاة عطل بالشبكة للدفعة القادمة</label>
+      <select id="fault">
+        <option value="">بدون عطل</option>
+        <option value="drop_response_after_commit:1">الدفعة تتنفّذ بس الرد يضيع</option>
+        <option value="fail_before_commit:2">المحفظة طايحة مؤقتاً (مرتين)</option>
+        <option value="fail_before_commit:5">المحفظة طايحة (مستمر)</option>
+      </select>
+      <p class="hint">يوضّح إن إعادة المحاولة ما تخصم مرتين: راقب سجل العمليات.</p>
+      <button id="reset" type="button">إعادة بيانات المحفظة للبداية</button>
+    </div>
+  </aside>
+</div>
+
+<script>
+  // الشرح: حالة الواجهة — رقم الجلسة (يربط الرسائل ببعض عند الوكيل) وآخر بطاقة معروضة.
+  let sessionId = null;
+  const thread = document.getElementById("thread");
+  const input = document.getElementById("input");
+  const fmt = (n) => Number(n).toLocaleString("en-US");
+
+  const EXAMPLES = ["دز 50 الف لأحمد", "ادفع قائمة الكهرباء", "ادفع قائمة المولدة ودز 50 الف لأمي",
+                    "حول مليون لأمي", "دز خمسين لحمودي", "شكد رصيدي؟"];
+
+  // الشرح: دوال تبني عناصر المحادثة. نستعمل textContent دائماً (مو innerHTML)
+  // لأي نص جاي من المستخدم أو السيرفر، حتى ما ينحقن HTML.
+  function el(tag, cls, text) {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+  function scroll() { thread.scrollTop = thread.scrollHeight; }
+
+  function addUser(text) { thread.append(el("div", "msg user", text)); scroll(); }
+
+  function addAgent(m) {
+    if (m.kind === "confirmation" && m.confirmation) return addCard(m);
+    const cls = "msg agent" + (m.kind === "error" ? " error" : m.kind === "result" ? " result" : "");
+    const box = el("div", cls, m.text);
+    if (m.options && m.options.length) {
+      const opts = el("div", "options");
+      m.options.forEach((o, i) => {
+        const b = el("button", null, `${i + 1}. ${o.label}`);
+        b.onclick = () => { opts.querySelectorAll("button").forEach(x => x.disabled = true); send({ option_id: o.id }, o.label); };
+        opts.append(b);
+      });
+      box.append(opts);
+    }
+    thread.append(box);
+    scroll();
+  }
+
+  // الشرح: بطاقة التأكيد. الترتيب مقصود: لمن/لأي جهة → المبلغ بخط كبير →
+  // التفاصيل (العمولة، المجموع، الرصيد بعدها) → التنبيهات → الأزرار.
+  // عدّاد المهلة يوضح إن التأكيد مؤقت؛ بعد انتهائه الأزرار تبقى لكن الوكيل
+  // يرجّع بطاقة جديدة بالأرقام المحدّثة بدل ما ينفّذ القديمة.
+  function addCard(m) {
+    const c = m.confirmation;
+    const card = el("div", "card");
+    const isT = c.kind === "transfer";
+    const head = el("div", "card-head", isT ? "تأكيد تحويل" : "تأكيد دفع فاتورة");
+    const timer = el("span", "timer");
+    head.append(timer);
+    const who = el("div", "card-who");
+    who.append(el("div", "name", isT ? c.recipient_name : `${c.biller} — ${c.label}`));
+    who.append(el("div", "sub", isT
+      ? [c.recipient_relation, c.recipient_phone_masked].filter(Boolean).join(" · ")
+      : `حساب ${c.account_no}${c.is_full_due ? " · القائمة كاملة" : ""}`));
+    const amount = el("div", "card-amount");
+    amount.append(el("span", "num", fmt(c.amount)), el("small", null, " دينار"));
+    const rows = el("div", "rows");
+    const row = (k, v, cls, plain) => { const r = el("div", "row" + (cls ? " " + cls : "")); r.append(el("span", "k", k), el("span", plain ? null : "num", v)); rows.append(r); };
+    row("العمولة", c.fee ? fmt(c.fee) : "بدون", null, !c.fee);
+    row("ينخصم منك", fmt(c.total), "total");
+    row("رصيدك الحالي", fmt(c.balance));
+    row("رصيدك بعد العملية", fmt(c.balance_after));
+    card.append(head, who, amount, rows);
+    if (c.warnings && c.warnings.length) card.append(el("div", "warns", "⚠️ " + c.warnings.join(" ")));
+    const actions = el("div", "card-actions");
+    const ok = el("button", "confirm", isT ? "أكّد التحويل" : "أكّد الدفع");
+    const no = el("button", null, "إلغاء");
+    const stamp = el("div", "stamp");
+    const lock = (text) => { ok.disabled = no.disabled = true; card.classList.add("done"); stamp.textContent = text; clearInterval(t); };
+    ok.onclick = async () => {
+      lock("جاري التنفيذ...");
+      const r = await post("/agent/confirm", { session_id: sessionId, confirmation_id: c.id });
+      stamp.textContent = "";
+      render(r);
+      // المحفظة ما ردّت والعملية ما تنفّذت: نفس البطاقة (نفس المفتاح) تبقى قابلة للضغط مرة ثانية.
+      if (r.state && r.state.pending_confirmation_id === c.id) {
+        ok.disabled = no.disabled = false; card.classList.remove("done");
+        stamp.textContent = "ما تنفّذت بعد — تكدر تضغط أكّد مرة ثانية بأمان.";
+      }
+    };
+    no.onclick = async () => { lock("ملغية"); render(await post("/agent/cancel", { session_id: sessionId, confirmation_id: c.id })); };
+    actions.append(ok, no);
+    card.append(actions, stamp);
+    card.dataset.id = c.id;
+    const end = Date.now() + c.expires_in_seconds * 1000;
+    const tick = () => { const s = Math.max(0, Math.round((end - Date.now()) / 1000));
+      timer.textContent = s ? `تنتهي خلال ${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}` : "انتهت المهلة"; };
+    const t = setInterval(tick, 1000); tick();
+    thread.append(card);
+    const hint = el("div", "msg agent", m.text); hint.style.fontSize = "13px";
+    thread.append(hint);
+    scroll();
+  }
+
+  // الشرح: أي بطاقة ما عادت "معلّقة" عند الوكيل (نُفّذت/انلغت/انتهت) نقفل أزرارها
+  // بالواجهة هم، حتى ما يضغط المستخدم على بطاقة قديمة بالغلط.
+  function syncCards(state) {
+    document.querySelectorAll(".card:not(.done)").forEach(card => {
+      if (card.dataset.id !== state.pending_confirmation_id) {
+        card.querySelectorAll("button").forEach(b => b.disabled = true);
+        card.classList.add("done");
+      }
+    });
+  }
+
+  function render(reply) {
+    sessionId = reply.session_id;
+    reply.messages.forEach(addAgent);
+    syncCards(reply.state);
+    const nlu = document.getElementById("nluText");
+    nlu.textContent = reply.parser === "llm" ? "الفهم: الموديل" : reply.parser === "rules_fallback" ? "الفهم: قواعد (الموديل فشل)" : "الفهم: قواعد";
+    refreshWallet();
+  }
+
+  async function post(path, body) {
+    try {
+      const r = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      if (!r.ok) throw new Error(r.status);
+      return await r.json();
+    } catch (e) {
+      return { session_id: sessionId, state: {}, messages: [{ kind: "error", code: "network", text: "ما گدرت أوصل للسيرفر. ما تنفّذ شي." }] };
+    }
+  }
+
+  async function send(extra, shownText) {
+    addUser(shownText);
+    render(await post("/agent/message", { session_id: sessionId, ...extra }));
+  }
+
+  document.getElementById("form").onsubmit = (e) => {
+    e.preventDefault();
+    const text = input.value.trim();
+    if (!text) return;
+    input.value = "";
+    send({ text }, text);
+  };
+
+  const chips = document.getElementById("chips");
+  EXAMPLES.forEach(x => { const b = el("button", null, x); b.type = "button"; b.onclick = () => send({ text: x }, x); chips.append(b); });
+
+  // الشرح: لوحة المحفظة — الرصيد وآخر العمليات من المحفظة الوهمية مباشرة،
+  // حتى تشوف بعينك إن العملية انحسبت مرة وحدة.
+  async function refreshWallet() {
+    try {
+      const [u, txs] = await Promise.all([
+        fetch("/wallet/users/u1").then(r => r.json()),
+        fetch("/wallet/users/u1/transactions?limit=8").then(r => r.json()),
+      ]);
+      document.getElementById("userName").textContent = u.name;
+      document.getElementById("balance").textContent = fmt(u.balance) + " IQD";
+      const box = document.getElementById("txs");
+      box.replaceChildren(...txs.map(t => {
+        const r = el("div", "tx");
+        const inflow = t.type === "transfer_in";
+        r.append(el("span", null, t.counterparty), el("span", "num " + (inflow ? "in" : "out"), (inflow ? "+" : "−") + fmt(t.amount)));
+        return r;
+      }));
+    } catch (e) { /* المحفظة ما ردّت — اللوحة تبقى على آخر قيمة */ }
+  }
+
+  document.getElementById("fault").onchange = async (e) => {
+    const [mode, times] = e.target.value ? e.target.value.split(":") : [null, 0];
+    await fetch("/wallet/_admin/faults", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mode, times: Number(times) || 1 }) });
+  };
+  document.getElementById("reset").onclick = async () => {
+    await fetch("/wallet/_admin/reset", { method: "POST" });
+    document.getElementById("fault").value = "";
+    sessionId = null;
+    thread.replaceChildren();
+    addAgent({ kind: "info", text: "رجّعت بيانات المحفظة للبداية. شنو تحتاج؟" });
+    refreshWallet();
+  };
+
+  // الشرح: حالة السيرفر والموديل. إذا الموديل مو جاهز، الوكيل يشتغل بالقواعد
+  // (نفس ضمانات الأمان — المبالغ والأسماء تنفحص بالكود بالحالتين).
+  async function status() {
+    try {
+      const s = await fetch("/status").then(r => r.json());
+      document.getElementById("apiDot").className = "dot ok";
+      document.getElementById("nluDot").className = "dot " + (s.model_ready ? "ok" : "wait");
+    } catch (e) { document.getElementById("apiDot").className = "dot bad"; }
+  }
+
+  // الشرح: إدخال صوتي (اختياري) عبر التعرّف على الكلام بالمتصفح (ar-IQ).
+  // يحوّل الكلام لنص ويرسله لنفس الوكيل — التأكيد يبقى إلزامي بنفس الطريقة.
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (SR) {
+    const mic = document.getElementById("mic");
+    mic.hidden = false;
+    const rec = new SR();
+    rec.lang = "ar-IQ"; rec.interimResults = false; rec.maxAlternatives = 1;
+    rec.onresult = (e) => { const text = e.results[0][0].transcript; send({ text }, "🎤 " + text); };
+    rec.onend = () => mic.classList.remove("on");
+    mic.onclick = () => { mic.classList.add("on"); rec.start(); };
+  }
+
+  addAgent({ kind: "info", text: "هلا! أكدر أحوّل فلوس أو أدفع فواتير. شنو تحتاج؟" });
+  refreshWallet(); status(); setInterval(status, 10000);
+</script>
+</body>
+</html>

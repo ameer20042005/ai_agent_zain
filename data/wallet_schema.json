@@ -1,0 +1,49 @@
+{
+  "$comment": "Schema used to generate data/wallet_seed.json with an LLM (see docs/AGENT.md → Disclosure). All money is integer Iraqi dinars (IQD). Timestamps in the seed are relative (days_ago) so the history always looks recent.",
+  "settings": {
+    "transfer_fee": "integer IQD, flat fee per transfer",
+    "min_amount": "integer IQD, smallest allowed payment/transfer",
+    "per_transaction_limit": "integer IQD",
+    "daily_limit": "integer IQD, sum of outgoing money per user per day"
+  },
+  "users": [{
+    "id": "string, e.g. u1",
+    "name": "string, full Arabic name",
+    "phone": "string, Iraqi mobile 07XXXXXXXXX, unique",
+    "balance": "integer IQD >= 0",
+    "status": "active | frozen"
+  }],
+  "contacts": [{
+    "id": "string, e.g. c1",
+    "owner_id": "users.id — whose phonebook this is",
+    "name": "string, as saved in the phonebook; duplicates and near-duplicates are intentional",
+    "phone": "string 07XXXXXXXXX",
+    "relation": "string|null — how the owner refers to them: اخوي, امي, صديق, جار ...",
+    "nickname": "string|null — e.g. حمودي, ابو حسين",
+    "wallet_user_id": "users.id|null — null means this contact has no wallet (transfers must fail)"
+  }],
+  "billers": [{
+    "id": "string",
+    "name": "string, Arabic display name",
+    "category": "electricity | generator | water | internet",
+    "fee": "integer IQD charged per payment",
+    "status": "active | maintenance"
+  }],
+  "bill_accounts": [{
+    "id": "string, e.g. ba1",
+    "user_id": "users.id",
+    "biller_id": "billers.id",
+    "label": "string — how the user names it: البيت, المحل ...",
+    "account_no": "string",
+    "due_amount": "integer IQD currently owed (0 = nothing to pay)"
+  }],
+  "transactions": [{
+    "user_id": "users.id",
+    "type": "transfer_out | transfer_in | bill_payment",
+    "amount": "integer IQD",
+    "fee": "integer IQD",
+    "counterparty": "string — recipient/sender/biller display name",
+    "counterparty_ref": "string — contact phone or bill account id",
+    "days_ago": "integer — converted to a timestamp at load time"
+  }]
+}
