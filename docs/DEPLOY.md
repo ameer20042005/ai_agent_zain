@@ -7,15 +7,14 @@
 
 ## قبل البدء
 
-### 1. توكن Hugging Face
+### 1. بدون توكن Hugging Face
 
-الموديل الافتراضي GGUF مستودعه عام، فلا يحتاج توكن. إذا بدّلت إلى مستودع خاص أو gated:
+ما تحتاج توكن ولا حساب Hugging Face. الموديل (`lmstudio-community/gemma-4-E4B-it-GGUF`) والـ tokenizer
+(`google/gemma-4-E4B-it`) بمستودعات عامة، و`start.sh` ينزّلهم بدون توكن: يمسح أي `HF_TOKEN` بالبيئة ويضبط
+`HF_HUB_DISABLE_IMPLICIT_TOKEN=1` حتى ما ينرسل توكن محفوظ من `huggingface-cli login` — توكن غلط أو منتهي
+يخلي Hugging Face يرفض حتى المستودع العام بخطأ `401`.
 
-1. افتح صفحة الموديل الأساس على Hugging Face واضغط **Agree and access repository** (للموديلات gated).
-2. تأكد إن حسابك يقدر يفتح مستودع الموديل المحدد بـ `model_name` في `app/config.py`.
-3. من https://huggingface.co/settings/tokens ولّد **Access Token** بصلاحية **Read**.
-
-إذا المستودع خاص أو gated وبدون توكن صحيح، خطوة التنزيل تفشل بخطأ `401` / `403`.
+> إذا بدّلت `model_name` لازم يكون مستودع عام — المستودعات الخاصة أو الـ gated ما تنزل بدون توكن.
 
 ### 2. اختيار الـ GPU
 
@@ -39,7 +38,6 @@
 | **Container Image** | `ubuntu:22.04` |
 | **Container Disk** | 60GB+ |
 | **Expose HTTP Ports** | `8000` |
-| **Environment Variables** (اختياري) | `HF_TOKEN` = توكنك — هيچ ما تحتاج تصدّره يدوياً كل مرة |
 
 اضغط **Deploy** وانتظر لحد ما الحالة تصير **Running**.
 
@@ -58,15 +56,7 @@ cd /workspace/app
 
 > بقية الدليل يفترض المسار `/workspace/app`. إذا استنسخت باسم ثاني بدّله بكل الأوامر.
 
-### 4) التوكن
-
-إذا بدّلت إلى مستودع خاص أو gated وما ضفت التوكن كـ Environment Variable بالخطوة 1:
-
-```bash
-export HF_TOKEN=hf_xxx
-```
-
-### 5) شغّل (بـ tmux حتى يضل شغال بعد غلق الطرفية)
+### 4) شغّل (بـ tmux حتى يضل شغال بعد غلق الطرفية)
 
 ```bash
 cd /workspace/app
@@ -77,9 +67,8 @@ tmux new-session -d -s api 'bash start.sh > /tmp/api.log 2>&1'
 
 - **`new-session -d`** تبدأ الجلسة منفصلة أصلاً، فما تحتاج اختصار `Ctrl+B` ثم `D` (أكثر خطوة تنكسر بالعادة).
 - **`HF_HUB_ENABLE_HF_TRANSFER=0`**: بعض قوالب RunPod تضبطه على `1` بدون ما تكون حزمة `hf_transfer` مثبتة، فيفشل أي تنزيل من Hugging Face. تصفيره يرجّع التنزيل العادي.
-- جلسة tmux ترث متغيرات البيئة من الطرفية اللي أنشأتها، فـ `HF_TOKEN` يوصل لـ `start.sh`.
 
-### 6) راقب الإقلاع
+### 5) راقب الإقلاع
 
 ```bash
 tail -f /tmp/api.log          # خطوات start.sh + لوق FastAPI
@@ -103,7 +92,7 @@ tail -f /tmp/vllm_boot.log    # لوق vLLM نفسه (تحميل الأوزان)
 ✅ vLLM ready at http://127.0.0.1:18001/v1
 ```
 
-### 7) تأكد إنه جاهز
+### 6) تأكد إنه جاهز
 
 ```bash
 curl -s http://127.0.0.1:8000/status
@@ -111,7 +100,7 @@ curl -s http://127.0.0.1:8000/status
 
 انتظر لحد ما يصير `"model_ready": true`.
 
-### 8) جرّب أول رد
+### 7) جرّب أول رد
 
 ```bash
 curl -s -X POST http://127.0.0.1:8000/chat \
@@ -119,7 +108,7 @@ curl -s -X POST http://127.0.0.1:8000/chat \
   -d '{"message":"شلونك؟"}'
 ```
 
-### 9) افتح من المتصفح
+### 8) افتح من المتصفح
 
 ```
 https://<POD_ID>-8000.proxy.runpod.net/        صفحة الحالة
@@ -128,7 +117,7 @@ https://<POD_ID>-8000.proxy.runpod.net/docs    توثيق الإيند بوين�
 
 تلقى `<POD_ID>` بزر **Connect** → **HTTP Service [Port 8000]**.
 
-### 10) اغلق الطرفية
+### 9) اغلق الطرفية
 
 السيرفر يضل شغال داخل tmux. للتأكد: افتح طرفية جديدة وشغّل `tmux ls` و `curl -s http://127.0.0.1:8000/health`.
 
@@ -148,7 +137,7 @@ https://<POD_ID>-8000.proxy.runpod.net/docs    توثيق الإيند بوين�
 
 > ⚠️ لا تضغط `Ctrl+C` ولا تكتب `exit` وأنت داخل جلسة tmux — ينهون السيرفر.
 
-> **حدود tmux**: يحمي من غلق الطرفية فقط، **مو** من إيقاف الـ Pod. إذا أوقفت الـ Pod وشغّلته من جديد لازم تعيد أمر الخطوة 5.
+> **حدود tmux**: يحمي من غلق الطرفية فقط، **مو** من إيقاف الـ Pod. إذا أوقفت الـ Pod وشغّلته من جديد لازم تعيد أمر الخطوة 4.
 > الموديل المنزّل يبقى بالكاش إذا كان على قرص دائم؛ على Container Disk قد ينمسح مع إعادة إنشاء الـ Pod.
 
 ### تحديث الكود
@@ -168,14 +157,14 @@ tmux new-session -d -s api 'bash start.sh > /tmp/api.log 2>&1'
 
 | المشكلة | السبب المحتمل | الحل |
 |---|---|---|
-| خطأ `401` / `403` بخطوة تنزيل الموديل | `HF_TOKEN` مفقود أو غلط، أو ما قبلت ترخيص الموديل الـ gated | راجع [توكن Hugging Face](#1-توكن-hugging-face). تأكد: `echo $HF_TOKEN` |
+| خطأ `401` / `403` بخطوة تنزيل الموديل | `model_name` مبدّل لمستودع خاص أو gated — التنزيل يصير بدون توكن | استعمل مستودع عام. راجع [بدون توكن Hugging Face](#1-بدون-توكن-hugging-face) |
 | أي تنزيل يفشل بخطأ `hf_transfer` | القالب ضابط `HF_HUB_ENABLE_HF_TRANSFER=1` بدون الحزمة | `export HF_HUB_ENABLE_HF_TRANSFER=0` قبل التشغيل |
 | `🛑 vLLM died immediately` | خطأ استيراد، CUDA، أو معمارية الموديل مو مدعومة | اقرأ آخر اللوق المطبوع. إذا ذكر `not supported` / `No module named` أعد تثبيت vLLM nightly (أمر الخطوة 3 بـ `start.sh`) |
 | `libcudart.so: cannot open shared object file` | مسار مكتبات CUDA المثبّتة كحزم pip مو مضاف | `start.sh` يصلحه تلقائياً (`_fix_cuda_lib_path`). إذا استمر، تأكد إن vLLM و torch مثبّتين بنفس نسخة CUDA (أعد التثبيت بـ `--force-reinstall`) |
 | `model_ready` يبقى `false` لفترة طويلة | vLLM بعده ينزّل/يحمّل الأوزان، أو انهار بعد الإقلاع | `tail -f /tmp/vllm_boot.log` — إذا شفت خطأ، هو السبب |
 | نفاد ذاكرة GPU (`CUDA out of memory`) | الـ GPU صغير، أو `gpu_memory_utilization` / `max_model_len` / `max_num_seqs` عالية | GPU أكبر، أو قلّل القيم بـ `app/config.py` |
 | `Address already in use` على 18001 | عملية ثانية ماسكة المنفذ | `ss -ltnp \| grep 18001` لمعرفة العملية. غيّر `vllm_port` **و** `vllm_base_url` بـ `config.py` معاً |
-| السيرفر يموت أول ما تغلق الطرفية | ما اشتغل داخل tmux فعلياً | استعمل أمر الخطوة 5 (`tmux new-session -d`) |
+| السيرفر يموت أول ما تغلق الطرفية | ما اشتغل داخل tmux فعلياً | استعمل أمر الخطوة 4 (`tmux new-session -d`) |
 | `bash start.sh` يطبع Nginx / Jupyter / «Pod is ready» | شغّلت سكربت إقلاع RunPod مو سكربت المشروع (مسار غلط) | `cd /workspace/app` أولاً |
 | `POST /chat` يرجع `503` | الموديل بعده يتحمّل | انتظر `model_ready: true` |
 | `POST /chat` يرجع `502` | vLLM رفض الطلب أو انهار (مثلاً الطلب أطول من `max_model_len`) | تفاصيل الخطأ بحقل `detail` بالرد، و `/tmp/vllm_boot.log` |

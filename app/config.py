@@ -6,13 +6,11 @@ start.sh يقرأ هذه القيم نفسها (بدل ما نكررها بال�
 """
 
 # الشرح: الاستيرادات اللازمة للإعدادات.
-#   - os: لقراءة HF_TOKEN من متغيرات البيئة (السر ما ينكتب بالكود).
+#   - os: لقراءة القيم اللي تتبدّل من متغيرات البيئة (MODEL_NAME، VLLM_BASE_URL...).
 #   - dataclass/field: نعرّف الإعدادات ككلاس ثابت (frozen) حتى ما يتغير بالغلط وقت التشغيل.
-#   - Optional: لأن التوكن ممكن يكون غير موجود محلياً.
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
 
 _ROOT = Path(__file__).resolve().parent.parent
 
@@ -25,6 +23,7 @@ _ROOT = Path(__file__).resolve().parent.parent
 class Settings:
     # اسم مستودع الموديل على Hugging Face. vLLM ينزّله تلقائياً بأول تشغيل
     # (يُخزَّن بكاش HF ~/.cache/huggingface) ثم يحمّله على الـ GPU.
+    # المستودع عام، فالتنزيل يصير بدون توكن Hugging Face (start.sh ما يرسل توكن أبداً).
     # نفس الاسم يُرسل بحقل "model" بكل طلب /v1/chat/completions.
     # MODEL_NAME من البيئة يبدّله بدون تعديل الكود — مثلاً اسم الموديل المحمّل
     # بـ LM Studio عند التشغيل المحلي (start_local.ps1).
@@ -43,10 +42,6 @@ class Settings:
     # فارغ = ما نرسل الحقل أصلاً (الافتراضي، حتى vLLM ما يرفض قيمة ما يعرفها).
     llm_reasoning_effort: str = field(default_factory=lambda: os.environ.get(
         "LLM_REASONING_EFFORT", ""))
-
-    # توكن Hugging Face — مطلوب إذا الموديل gated (مثل Gemma) أو المستودع خاص.
-    # يُقرأ من البيئة فقط حتى ما ينرفع سر حقيقي مع الكود.
-    hf_token: Optional[str] = field(default_factory=lambda: os.environ.get("HF_TOKEN"))
 
     # إعدادات خادم vLLM (start.sh يمررها لـ vllm serve):
     # نسبة الـ VRAM اللي يحجزها vLLM للأوزان + KV cache.

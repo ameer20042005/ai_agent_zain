@@ -46,7 +46,7 @@ mapfile -t CFG < <(python3 -c '
 from app.config import settings
 for v in (settings.model_name, settings.vllm_port, settings.api_port,
           settings.max_model_len, settings.gpu_memory_utilization,
-          settings.max_num_seqs, settings.hf_token or ""):
+          settings.max_num_seqs):
     print(v)
 ')
 MODEL_NAME="${CFG[0]}"
@@ -55,8 +55,14 @@ API_PORT="${CFG[2]}"
 MAX_MODEL_LEN="${CFG[3]}"
 GPU_MEMORY_UTILIZATION="${CFG[4]}"
 MAX_NUM_SEQS="${CFG[5]}"
-export HF_TOKEN="${CFG[6]}"
 VLLM_LOG="/tmp/vllm_boot.log"
+
+# الشرح: التنزيل بدون توكن Hugging Face. الموديل (GGUF) والـ tokenizer
+# بمستودعات عامة، فما نحتاج توكن. نمسح أي HF_TOKEN بالبيئة، ونمنع
+# huggingface_hub يرسل توكن محفوظ (من huggingface-cli login): توكن غلط أو
+# منتهي يخلي Hugging Face يرفض حتى المستودع العام بخطأ 401.
+unset HF_TOKEN HUGGING_FACE_HUB_TOKEN
+export HF_HUB_DISABLE_IMPLICIT_TOKEN=1
 
 # ── 5) تنزيل الموديل ─────────────────────────────────────────────────────────
 # الشرح: مستودع GGUF الافتراضي يحتوي عدة نسخ، لذلك إضافة vLLM GGUF
@@ -80,7 +86,7 @@ else
     MODEL_NAME="${MODEL_NAME}" python3 -c '
 import os
 from huggingface_hub import snapshot_download
-snapshot_download(os.environ["MODEL_NAME"], token=os.environ.get("HF_TOKEN") or None)
+snapshot_download(os.environ["MODEL_NAME"])
 '
 fi
 

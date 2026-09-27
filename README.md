@@ -98,7 +98,7 @@ ai_agent_zain/
 | نظام التشغيل | Linux (مُختبر على Ubuntu 22.04). vLLM ما يشتغل على Windows مباشرة |
 | GPU | NVIDIA بذاكرة كافية لنسخة Gemma 4 E4B GGUF Q4_K_M (~5.34GB على القرص) مع مساحة للـ KV cache؛ A40 48GB خيار مريح |
 | القرص | مساحة لـ torch/vLLM وإضافة GGUF وملف الموديل (~5.34GB) والكاش |
-| توكن Hugging Face | مطلوب فقط إذا بدّلت إلى مستودع خاص أو gated |
+| توكن Hugging Face | **مو مطلوب** — الموديل والـ tokenizer بمستودعات عامة، و`start.sh` ينزّلهم بدون توكن |
 
 ---
 
@@ -110,11 +110,8 @@ cd /workspace
 git clone <REPO_URL> app
 cd /workspace/app
 
-# 2) توكن Hugging Face (يُقرأ من البيئة، ما ينكتب بالكود)
-export HF_TOKEN=hf_xxx
+# 2) شغّل (ما يحتاج توكن Hugging Face)
 export HF_HUB_ENABLE_HF_TRANSFER=0
-
-# 3) شغّل
 bash start.sh
 ```
 
@@ -124,7 +121,7 @@ bash start.sh
 2. يثبّت `requirements.txt`.
 3. يثبّت **vLLM nightly** (فيه دعم Gemma 4) إذا vLLM مو موجود.
 4. يقرأ الإعدادات من `app/config.py`.
-5. **ينزّل الموديل** من Hugging Face للكاش (`~/.cache/huggingface`). للموديل الافتراضي يثبّت إضافة GGUF ويختار نسخة `Q4_K_M` فقط؛ التشغيلات اللاحقة تستعمل الكاش.
+5. **ينزّل الموديل** من Hugging Face للكاش (`~/.cache/huggingface`) **بدون توكن** (يمسح `HF_TOKEN` ويمنع إرسال أي توكن محفوظ). للموديل الافتراضي يثبّت إضافة GGUF ويختار نسخة `Q4_K_M` فقط؛ التشغيلات اللاحقة تستعمل الكاش.
 6. يطبّق إصلاحات بيئة CUDA.
 7. يقتل أي تشغيلة سابقة عالقة.
 8. يشغّل خادم vLLM بالخلفية (لوقه بـ `/tmp/vllm_boot.log`).
@@ -160,7 +157,6 @@ uvicorn app.main:app --reload --port 8000
 |---|---|---|
 | `model_name` | `lmstudio-community/gemma-4-E4B-it-GGUF` | مستودع الموديل على Hugging Face. يحمّل `Q4_K_M` افتراضياً ويُرسل اسم المستودع بحقل `model` بكل طلب |
 | `vllm_base_url` | `http://127.0.0.1:18001/v1` | عنوان خادم vLLM. لازم المنفذ يطابق `vllm_port` |
-| `hf_token` | من متغير البيئة `HF_TOKEN` | توكن Hugging Face — لا تكتبه بالكود |
 | `gpu_memory_utilization` | `0.85` | نسبة VRAM اللي يحجزها vLLM (أوزان + KV cache) |
 | `max_model_len` | `8192` | أقصى طول سياق (برومبت + رد). أقصر = طلبات متزامنة أكثر |
 | `max_num_seqs` | `64` | أقصى عدد طلبات يعالجها vLLM بنفس الوقت |
@@ -175,7 +171,7 @@ uvicorn app.main:app --reload --port 8000
 
 ### تغيير الموديل
 
-1. بدّل `model_name` بـ `app/config.py`.
+1. بدّل `model_name` بـ `app/config.py`. لازم يكون مستودع **عام** — التنزيل يصير بدون توكن، فالمستودعات الخاصة أو الـ gated ما تنزل.
 2. إذا الموديل الجديد **مو** من عائلة Gemma 4، بدّل `--tool-call-parser gemma4` بـ `start.sh` للـ parser مال عائلته (الـ parser خاص بكل عائلة موديلات). **لا تحذف** سطري tool calling — الوكيل كله يشتغل بالأدوات، فلازم الموديل يدعمها.
 3. إذا الموديل مدعوم بإصدار vLLM المستقر، تقدر تبدّل خطوة التنصيب بـ `start.sh` إلى `pip install vllm` بدل nightly.
 4. راجع `max_model_len` و `gpu_memory_utilization` حسب حجم الموديل وذاكرة الـ GPU.
