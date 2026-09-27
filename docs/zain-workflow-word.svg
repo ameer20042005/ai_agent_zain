@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2480" height="3508" viewBox="0 0 2480 3508">
+  <defs>
+    <marker id="arrow" viewBox="0 0 20 20" refX="17" refY="10" markerWidth="32" markerHeight="32" markerUnits="userSpaceOnUse" orient="auto">
+      <path d="M 2 2 L 18 10 L 2 18 Z" fill="#6B8790"/>
+    </marker>
+    <style>
+      text { font-family: 'Segoe UI', 'Arial', sans-serif; text-anchor: middle; }
+      .title { font-size: 112px; font-weight: 700; fill: #143C48; }
+      .intro { font-size: 54px; fill: #45616C; }
+      .step { font-size: 72px; font-weight: 700; fill: #153B47; }
+      .detail { font-size: 48px; fill: #3E5C66; }
+      .number { font-size: 73px; font-weight: 700; fill: #FFFFFF; }
+      .footer { font-size: 49px; font-weight: 700; fill: #20524D; }
+      .arrow { stroke: #6B8790; stroke-width: 12; marker-end: url(#arrow); }
+    </style>
+  </defs>
+
+  <rect width="2480" height="3508" fill="#F8FBFC"/>
+  <rect x="0" y="0" width="2480" height="28" fill="#0B777A"/>
+  <text class="title" x="1240" y="210" direction="rtl">تدفق عمل وكيل زين</text>
+  <text class="intro" x="1240" y="310" direction="rtl">من طلب المستخدم إلى تأكيد العملية وإظهار نتيجتها</text>
+  <line x1="420" y1="365" x2="2060" y2="365" stroke="#C7DADD" stroke-width="5"/>
+
+  <rect x="240" y="480" width="2000" height="285" rx="42" fill="#EAF6F7" stroke="#8FCBD0" stroke-width="5"/>
+  <circle cx="395" cy="622" r="66" fill="#16898B"/>
+  <text class="number" x="395" y="647">١</text>
+  <text class="step" x="1320" y="584" direction="rtl">المستخدم يرسل الطلب</text>
+  <text class="detail" x="1320" y="676" direction="rtl">تحويل أموال أو دفع فاتورة باللهجة العراقية</text>
+  <line class="arrow" x1="1240" y1="790" x2="1240" y2="865"/>
+
+  <rect x="240" y="870" width="2000" height="285" rx="42" fill="#ECF3FF" stroke="#A7BFE8" stroke-width="5"/>
+  <circle cx="395" cy="1012" r="66" fill="#4B76BD"/>
+  <text class="number" x="395" y="1037">٢</text>
+  <text class="step" x="1320" y="974" direction="rtl">FastAPI يدير الجلسة</text>
+  <text class="detail" x="1320" y="1066" direction="rtl">يستقبل الرسالة ويقفل الجلسة أثناء المعالجة</text>
+  <line class="arrow" x1="1240" y1="1180" x2="1240" y2="1255"/>
+
+  <rect x="240" y="1260" width="2000" height="285" rx="42" fill="#F2EEFC" stroke="#C5B4E5" stroke-width="5"/>
+  <circle cx="395" cy="1402" r="66" fill="#8261B1"/>
+  <text class="number" x="395" y="1427">٣</text>
+  <text class="step" x="1320" y="1364" direction="rtl">الوكيل يستعين بالموديل</text>
+  <text class="detail" x="1320" y="1456" direction="rtl">يفهم المقصود ويختار أداة اقتراح العملية</text>
+  <line class="arrow" x1="1240" y1="1570" x2="1240" y2="1645"/>
+
+  <rect x="240" y="1650" width="2000" height="285" rx="42" fill="#E9F7F1" stroke="#94D1B1" stroke-width="5"/>
+  <circle cx="395" cy="1792" r="66" fill="#29976B"/>
+  <text class="number" x="395" y="1817">٤</text>
+  <text class="step" x="1320" y="1754" direction="rtl">المحفظة تحسب الأرقام</text>
+  <text class="detail" x="1320" y="1846" direction="rtl">تفحص الرصيد والحدود وتعيد المبلغ والعمولة</text>
+  <line class="arrow" x1="1240" y1="1960" x2="1240" y2="2035"/>
+
+  <rect x="240" y="2040" width="2000" height="285" rx="42" fill="#FFF5DF" stroke="#E5C47B" stroke-width="5"/>
+  <circle cx="395" cy="2182" r="66" fill="#BE8A25"/>
+  <text class="number" x="395" y="2207">٥</text>
+  <text class="step" x="1320" y="2144" direction="rtl">تظهر بطاقة التأكيد</text>
+  <text class="detail" x="1320" y="2236" direction="rtl">تعرض المستلم والمبلغ والعمولة قبل أي خصم</text>
+  <line class="arrow" x1="1240" y1="2350" x2="1240" y2="2425"/>
+
+  <rect x="240" y="2430" width="2000" height="285" rx="42" fill="#E8F7EF" stroke="#81CDA2" stroke-width="5"/>
+  <circle cx="395" cy="2572" r="66" fill="#20935C"/>
+  <text class="number" x="395" y="2597">٦</text>
+  <text class="step" x="1320" y="2534" direction="rtl">التأكيد يطلق التنفيذ</text>
+  <text class="detail" x="1320" y="2626" direction="rtl">رقم البطاقة يصبح مفتاح منع الخصم المكرر</text>
+  <line class="arrow" x1="1240" y1="2740" x2="1240" y2="2815"/>
+
+  <rect x="240" y="2820" width="2000" height="285" rx="42" fill="#EAF1F7" stroke="#A4BED2" stroke-width="5"/>
+  <circle cx="395" cy="2962" r="66" fill="#457D9B"/>
+  <text class="number" x="395" y="2987">٧</text>
+  <text class="step" x="1320" y="2924" direction="rtl">SQLite يحفظ النتيجة</text>
+  <text class="detail" x="1320" y="3016" direction="rtl">عملية ذرية ثم إبلاغ المستخدم بالنتيجة</text>
+
+  <rect x="240" y="3220" width="2000" height="192" rx="38" fill="#DDF0EA" stroke="#A5D3C5" stroke-width="4"/>
+  <text class="footer" x="1240" y="3301" direction="rtl">قاعدة الأمان: لا خصم قبل تأكيد بطاقة فعّالة</text>
+  <text class="footer" x="1240" y="3370" direction="rtl">الإلغاء أو انتهاء البطاقة لا ينفّذ أي عملية</text>
+</svg>

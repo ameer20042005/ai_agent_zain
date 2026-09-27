@@ -8,6 +8,7 @@
 #   - asynccontextmanager: لكتابة دالة lifespan (كود يشتغل عند الإقلاع والإغلاق).
 #   - Path: لتحديد مكان مجلد static بغض النظر من وين شغّلت السيرفر.
 #   - FileResponse: لإرجاع ملف index.html كما هو.
+#   - StaticFiles: لتقديم باقي ملفات static (مثل أنميشن Lottie) تحت /static.
 #   - llm_engine / settings: المحرك والإعدادات من ملفاتنا.
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -15,6 +16,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
 from app.engine import llm_engine
@@ -61,6 +63,11 @@ _STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 @app.get("/", include_in_schema=False)
 def index():
     return FileResponse(_STATIC_DIR / "index.html")
+
+
+# الشرح: باقي ملفات مجلد static (مثل "Live chatbot.json" — أنميشن زين بشاشة
+# الترحيب) تنخدم تحت /static/... كما هي. الصفحة تطلبها بعنوان نسبي من نفس السيرفر.
+app.mount("/static", StaticFiles(directory=_STATIC_DIR), name="static")
 
 
 # الشرح: فحص الحالة — صفحة index تستدعيه كل شوي:
