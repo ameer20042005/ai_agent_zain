@@ -2,15 +2,16 @@
 """استخراج المبالغ من كلام عراقي: "50 الف"، "خمسين الف"، "ربع مليون"، "مليون ونص"،
 "خمس تلاف"، "٢٥٠٠٠"، "50,000".
 
-المبلغ أخطر حقل بالطلب، لذلك **يُحسب بالكود دائماً** — حتى لما الموديل يستخرج
-النية، الرقم النهائي يطلع من هنا (والموديل يعطينا فقط النص الحرفي للمبلغ).
-الحالات الغامضة ما نخمّنها؛ نرجعها كـ issue والوكيل يسأل عنها.
+المبلغ أخطر حقل بالطلب، لذلك **يتحقق منه الكود دائماً**: الموديل يقترح مبلغاً
+بأداة (propose_transfer...)، وحارس المبلغ بـ tools.py يقبله فقط إذا هذا الملف
+لگاه مكتوب بوضوح بكلام المستخدم. الحالات الغامضة ما نخمّنها؛ نرجعها كـ issue
+والموديل لازم يسأل عنها.
 """
 
 from dataclasses import dataclass
 from typing import List, Optional
 
-from app.agent.textnorm import normalize, tokens
+from app.assistant.textnorm import normalize, tokens
 
 # الشرح: قاموس كلمات الأرقام بعد التطبيع (ة→ه، أ→ا). يشمل الصيغ العراقية
 # المحكية مثل "خمسطعش" (15)، "ميتين" (200)، "تلاف" (آلاف).
@@ -93,11 +94,6 @@ def _is_numberish(tok: str) -> bool:
     t = _strip_joiner(tok)
     return (t in _UNITS or t in _MULTIPLIERS or t in _DUALS or t in _FRACTIONS
             or (_is_digit(t) and not _is_phone(t)))
-
-
-def is_number_token(tok: str) -> bool:
-    """هل الكلمة جزء من مبلغ؟ (رقم، كلمة رقم، الف/مليون...) — يستعمله تقسيم الطلبات."""
-    return _is_numberish(tok)
 
 
 def _evaluate(span: List[str]) -> tuple:

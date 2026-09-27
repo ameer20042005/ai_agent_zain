@@ -29,7 +29,7 @@ class Settings:
     # MODEL_NAME من البيئة يبدّله بدون تعديل الكود — مثلاً اسم الموديل المحمّل
     # بـ LM Studio عند التشغيل المحلي (start_local.ps1).
     model_name: str = field(default_factory=lambda: os.environ.get(
-        "MODEL_NAME", "ameer4wisam/gemma-iraqi-10k-merged"))
+        "MODEL_NAME", "lmstudio-community/gemma-4-E4B-it-GGUF"))
 
     # عنوان خادم vLLM المتوافق مع OpenAI. الباك اند مجرد عميل HTTP له.
     # لازم المنفذ هنا يطابق vllm_port بالأسفل.
@@ -39,7 +39,7 @@ class Settings:
         "VLLM_BASE_URL", "http://127.0.0.1:18001/v1"))
 
     # الشرح: موديلات Gemma 4 أحياناً "تفكر" (reasoning) قبل الرد، والتفكير ياكل
-    # من max_tokens فيقطع الـ JSON بالنص. قيمة "none" تطفي التفكير بـ LM Studio.
+    # من max_tokens فيقطع الرد أو وسائط الأداة (JSON) بالنص. قيمة "none" تطفي التفكير بـ LM Studio.
     # فارغ = ما نرسل الحقل أصلاً (الافتراضي، حتى vLLM ما يرفض قيمة ما يعرفها).
     llm_reasoning_effort: str = field(default_factory=lambda: os.environ.get(
         "LLM_REASONING_EFFORT", ""))
@@ -74,10 +74,6 @@ class Settings:
     wallet_base_url: str = field(default_factory=lambda: os.environ.get("WALLET_BASE_URL", ""))
     # المستخدم الافتراضي للجلسات (المحفظة الوهمية فيها أكثر من مستخدم).
     default_user_id: str = "u1"
-
-    # فهم الطلب (NLU): auto = الموديل إذا جاهز وإلا القواعد، llm = الموديل فقط،
-    # rules = القواعد فقط (بدون GPU). في كل الأحوال المبلغ والأسماء تتحقق بالكود.
-    nlu_mode: str = field(default_factory=lambda: os.environ.get("NLU_MODE", "auto"))
 
     # بطاقة التأكيد تنتهي صلاحيتها بعد هذي المدة — تأكيد قديم ما ينفّذ.
     confirmation_ttl_seconds: int = 300

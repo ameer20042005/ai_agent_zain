@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
-"""إثبات إن إعادة المحاولة ما تسبب دفعاً مكرراً — على مستوى المحفظة والوكيل."""
+"""إثبات إن إعادة المحاولة ما تسبب دفعاً مكرراً — على مستوى المحفظة وعميلها.
+(الضغط المتزامن على "أكّد" عبر الوكيل مختبَر بـ test_assistant.py.)"""
 
 import asyncio
 
 import pytest
 
-from app.agent.core import Agent, SessionStore
-from app.agent.wallet_client import WalletClient
+from app.assistant.wallet_client import WalletClient
 
 TRANSFER = {"amount": 50_000, "to_contact_id": "c1"}
 
@@ -70,22 +70,4 @@ def test_client_retries_never_double_charge(wallet_http, mode, times, outcome, e
         res = await WalletClient(wallet_http).execute("u1", "transfer", TRANSFER, key="card-123")
         assert res.outcome == outcome
         assert len(await _outgoing(wallet_http)) == executed
-    asyncio.run(run())
-
-
-def test_double_click_confirm_through_agent_executes_once(wallet_http):
-    """ضغطتين "أكّد" بنفس اللحظة: قفل الجلسة + بطاقة منفّذة = عملية وحدة."""
-    async def run():
-        agent, store = Agent(WalletClient(wallet_http)), SessionStore()
-        s = store.get(None, "u1")
-        out = await agent.handle_message(s, "دز 50 الف لأحمد كريم")
-        conf_id = out[-1]["confirmation"]["id"]
-
-        async def press():
-            async with s.lock:
-                return await agent.confirm(s, conf_id)
-        replies = await asyncio.gather(press(), press(), press())
-        codes = sorted(r[-1]["code"] for r in replies)
-        assert codes == ["already_executed", "already_executed", "executed"]
-        assert len(await _outgoing(wallet_http)) == 1
     asyncio.run(run())

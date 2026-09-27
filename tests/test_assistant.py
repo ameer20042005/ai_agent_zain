@@ -7,37 +7,16 @@ import json
 
 import pytest
 
-from app.agent.wallet_client import WalletClient
 from app.assistant.agent import Assistant, SessionStore
-from app.engine import llm_engine
+from app.assistant.wallet_client import WalletClient
 
 
-# الشرح: موديل وهمي يمشي على سيناريو ثابت. كل خطوة إما نص (رد نهائي) أو
-# (اسم أداة، وسائط) = الموديل طلب أداة. هيچ نختبر الحلقة والأدوات بدون LM Studio.
-def _script(*steps):
-    steps = list(steps)
-
-    async def chat(messages, **kwargs):
-        assert kwargs.get("tools"), "الوكيل لازم يرسل تعريف الأدوات"
-        step = steps.pop(0) if steps else "تمام"
-        if isinstance(step, str):
-            return {"choices": [{"message": {"role": "assistant", "content": step}}]}
-        name, args = step
-        return {"choices": [{"message": {"role": "assistant", "content": "", "tool_calls": [
-            {"id": "call_1", "type": "function",
-             "function": {"name": name, "arguments": json.dumps(args, ensure_ascii=False)}}]}}]}
-    return chat
-
-
-# الشرح: وكيل مربوط بمحفظة اختبار نظيفة، والموديل "جاهز".
+# الشرح: وكيل مربوط بمحفظة اختبار نظيفة، والموديل الوهمي (fake_llm بـ conftest).
 @pytest.fixture
-def env(wallet_http, monkeypatch):
-    monkeypatch.setattr(llm_engine, "_ready", True)
+def env(wallet_http, fake_llm):
     bot = Assistant(WalletClient(client=wallet_http))
     s = SessionStore().get(None, "u1")
-
-    def use(*steps):
-        monkeypatch.setattr(llm_engine, "chat", _script(*steps))
+    use = fake_llm
 
     async def outgoing():
         txs = (await wallet_http.get("/users/u1/transactions", params={"limit": 100})).json()
@@ -70,6 +49,24 @@ def test_card_only_money_moves_on_confirm_and_never_twice(env):
         use("صارت قبل شوية")
         await bot.confirm(s, card["id"])                   # ضغطة ثانية
         assert len(await outgoing()) == 1
+    asyncio.run(run())
+
+
+def test_three_simultaneous_confirms_execute_once(env):
+    """ثلاث ضغطات "أكّد" بنفس اللحظة: قفل الجلسة + بطاقة منفّذة = عملية وحدة."""
+    bot, s, use, outgoing = env
+
+    async def run():
+        use(("propose_transfer", {"contact_id": "c2", "amount": 50_000}), "تفضل")
+        out = await bot.handle_message(s, "دز 50 الف لأحمد كريم")
+        card_id = _cards(out)[0]["id"]
+
+        async def press():
+            async with s.lock:
+                return await bot.confirm(s, card_id)
+        await asyncio.gather(press(), press(), press())
+        assert len(await outgoing()) == 1
+        assert s.cards[card_id].status == "completed"
     asyncio.run(run())
 
 

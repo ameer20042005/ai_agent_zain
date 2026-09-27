@@ -43,7 +43,7 @@ curl -s http://127.0.0.1:8000/status
 
 ```json
 {
-  "model": "ameer4wisam/gemma-iraqi-10k-merged",
+  "model": "lmstudio-community/gemma-4-E4B-it-GGUF",
   "vllm_base_url": "http://127.0.0.1:18001/v1",
   "model_ready": true
 }
@@ -57,7 +57,10 @@ curl -s http://127.0.0.1:8000/status
 
 ---
 
-## وكيل الدفع والتحويل — `/agent`
+## وكيل الدفع والتحويل — `/assistant`
+
+الموديل يكتب الردود بنفسه ويعرض بطاقات التأكيد بالأدوات؛ الفلوس ما تتحرك إلا بـ `/assistant/confirm`
+(أو كتابة «اكد» لما أكو بطاقة وحدة معلّقة). يحتاج موديل شغّال (`model_ready: true`).
 
 كل رد من الوكيل بهذا الشكل:
 
@@ -65,40 +68,33 @@ curl -s http://127.0.0.1:8000/status
 {
   "session_id": "a1b2c3d4e5f6",
   "user_id": "u1",
-  "parser": "llm | rules | rules_fallback",
-  "state": {"awaiting": "confirm", "pending_confirmation_id": "9f2c…", "queued_requests": 0},
+  "state": {"pending_confirmation_ids": ["9f2c…"], "pending_confirmation_id": "9f2c…"},
   "messages": [
-    {"code": "confirm_transfer", "kind": "confirmation", "text": "راح أحوّل …", "confirmation": {"id": "9f2c…", "…": "…"}}
+    {"code": "reply", "kind": "agent", "text": "تمام، هاي بطاقة التحويل لأحمد كريم، اضغط أكّد."},
+    {"code": "confirmation", "kind": "confirmation", "text": "", "confirmation": {"id": "9f2c…", "…": "…"}}
   ]
 }
 ```
 
-- `messages` قائمة لأن الدور الواحد ممكن يرجّع أكثر من رسالة (نتيجة عملية + بطاقة الطلب التالي).
-- `kind`: `question` (يحتاج جواب؛ ممكن ويا `options`) · `confirmation` (بطاقة) · `result` · `error` · `info`.
-- `code`: رمز ثابت تعتمد عليه الواجهة والاختبارات. الأسئلة: `ask_contact_choice`، `ask_contact_fuzzy`،
-  `ask_recipient`، `unknown_contact`، `ask_amount`، `ask_amount_thousands`، `ask_amount_usd`، `ask_amount_slang`،
-  `ask_amount_all_balance`، `ask_amount_multiple`، `ask_bill_account`، `ask_confirm_again`. البطاقات:
-  `confirm_transfer`، `confirm_bill`. النتائج: `executed`، `already_executed`. الرفض: `insufficient_funds`،
-  `limit_exceeded`، `recipient_not_on_wallet`، `recipient_unavailable`، `self_transfer`، `biller_unavailable`،
-  `nothing_due`، `amount_exceeds_due`، `invalid_amount`، `no_bill_account`، `wallet_unavailable`،
-  `payment_status_unknown`، `stale_confirmation`. معلومات: `balance`، `history`، `multi_request`، `cancelled`،
-  `unsupported`، `not_understood`، `nothing_pending`.
+- `messages`: رد الموديل أولاً، بعده كل بطاقة تأكيد انعرضت بهذا الدور (ممكن أكثر من وحدة لطلبات متعددة).
+- `kind`: `agent` (كلام عادي) · `confirmation` (بطاقة) · `result` (دفعة تمت — ويا `transaction` و`balance`
+  من المحفظة نفسها) · `error` (ما تمت، أو الموديل مو شغّال: `code = model_offline`).
+- `state.pending_confirmation_ids`: كل البطاقات اللي بعدها تنتظر الزر — الصفحة تقفل أزرار أي بطاقة طلعت منها.
 
-### `POST /agent/message`
+### `POST /assistant/message`
 
 | الحقل | الوصف |
 |---|---|
 | `text` | رسالة المستخدم |
-| `option_id` | بدل `text`: اختيار زر من `options` السؤال |
 | `session_id` | فارغ = جلسة جديدة؛ بعدها أرسل نفس الرقم |
 | `user_id` | فارغ = `u1` |
 
 ```bash
-curl -s -X POST localhost:8000/agent/message -H 'Content-Type: application/json'   -d '{"text": "دز 50 الف لأحمد"}'
-# → ask_contact_choice مع خيارين (c1, c2)
+curl -s -X POST localhost:8000/assistant/message -H 'Content-Type: application/json'   -d '{"text": "دز 50 الف لأحمد"}'
+# → الموديل يسأل: أحمد علي حسين لو أحمد كريم؟ (اسمين يطابقون)
 
-curl -s -X POST localhost:8000/agent/message -H 'Content-Type: application/json'   -d '{"session_id": "<SID>", "option_id": "c2"}'
-# → confirm_transfer مع بطاقة: المستلم، المبلغ، العمولة، المجموع، الرصيد بعدها، التنبيهات
+curl -s -X POST localhost:8000/assistant/message -H 'Content-Type: application/json'   -d '{"session_id": "<SID>", "text": "أحمد كريم"}'
+# → رد قصير + بطاقة: المستلم، المبلغ، العمولة، المجموع، الرصيد بعدها، التنبيهات
 ```
 
 بطاقة التأكيد (`confirmation`):
@@ -114,24 +110,25 @@ curl -s -X POST localhost:8000/agent/message -H 'Content-Type: application/json'
 | `warnings` | تنبيهات: أول تحويل لهذا الشخص، أكثر من نص الرصيد، دفع جزئي |
 | `expires_at`، `expires_in_seconds` | مهلة البطاقة |
 
-### `POST /agent/confirm`
+### `POST /assistant/confirm`
 
 ```bash
-curl -s -X POST localhost:8000/agent/confirm -H 'Content-Type: application/json'   -d '{"session_id": "<SID>", "confirmation_id": "<CARD_ID>"}'
+curl -s -X POST localhost:8000/assistant/confirm -H 'Content-Type: application/json'   -d '{"session_id": "<SID>", "confirmation_id": "<CARD_ID>"}'
 ```
 
-- ينفّذ **حمولة البطاقة بالضبط**. إرسال نفس الطلب مرة ثانية يرجّع `already_executed` بدون تنفيذ.
-- بطاقة قديمة أو ملغية → `stale_confirmation`. منتهية وما انحاولت → `confirmation_expired` + بطاقة جديدة.
-- كتابة «اكد» / «اي» بـ `/agent/message` تسوي نفس الشي للبطاقة الحالية.
+- ينفّذ **حمولة البطاقة بالضبط** — المكان الوحيد اللي تتحرك بيه الفلوس. إرسال نفس الطلب مرة ثانية ما ينفّذ
+  مرة ثانية (البطاقة `completed`)، والموديل يبلّغ إنها منفّذة من قبل.
+- بطاقة ملغية أو مرفوضة أو منتهية المهلة → ما ينفّذ شي؛ الموديل يشرح، ويعرض بطاقة جديدة إذا المستخدم بعده يريدها.
+- المحفظة ما ردّت → نفس البطاقة ترجع فعّالة؛ الضغط مرة ثانية آمن (نفس مفتاح الـ Idempotency).
+- كتابة «اكد» / «اي» بـ `/assistant/message` تسوي نفس الشي، بس لما أكو بطاقة وحدة معلّقة.
 
-### `POST /agent/cancel`
+### `POST /assistant/cancel`
 
-`{"session_id": "<SID>", "confirmation_id": "<اختياري>", "everything": false}` — `everything: true` يلغي كل
-الطلبات بالطابور (مثل كتابة «الغي الكل»).
+`{"session_id": "<SID>", "confirmation_id": "<اختياري>"}` — بدون `confirmation_id` يلغي كل البطاقات المعلّقة.
 
-### `GET /agent/session/{session_id}`
+### `GET /assistant/session/{session_id}`
 
-حالة الجلسة: السؤال الحالي، البطاقة المعلّقة، الطلبات بالطابور، وسجل المحادثة.
+المحادثة كاملة بصيغة OpenAI (مع استدعاءات الأدوات ونتائجها وأحداث التطبيق) وكل البطاقات مع حالاتها — للتشخيص.
 
 ---
 
@@ -256,7 +253,7 @@ curl -s http://127.0.0.1:18001/v1/models
 curl -s http://127.0.0.1:18001/v1/chat/completions \
   -H 'Content-Type: application/json' \
   -d '{
-    "model": "ameer4wisam/gemma-iraqi-10k-merged",
+    "model": "lmstudio-community/gemma-4-E4B-it-GGUF",
     "messages": [{"role": "user", "content": "شلونك؟"}],
     "max_tokens": 100
   }'

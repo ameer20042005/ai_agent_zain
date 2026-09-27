@@ -59,18 +59,30 @@ export HF_TOKEN="${CFG[6]}"
 VLLM_LOG="/tmp/vllm_boot.log"
 
 # ── 5) تنزيل الموديل ─────────────────────────────────────────────────────────
-# الشرح: ننزّل أوزان الموديل من Hugging Face لكاش القرص (~/.cache/huggingface)
-# قبل تشغيل vLLM. vLLM يقدر ينزّله بنفسه، بس التنزيل المسبق هنا يعطيك:
-#   - تقدّم تنزيل واضح بالطرفية بدل ما يكون مخفي داخل لوق vLLM.
-#   - أي خطأ توكن/صلاحية يظهر فوراً وبوضوح.
-# التشغيلات اللاحقة ما تعيد التنزيل (الملفات موجودة بالكاش).
-# huggingface_hub تنثبّت تلقائياً مع vLLM.
-echo "==> Downloading model ${MODEL_NAME} (skipped if already cached)..."
-python3 -c "
+# الشرح: مستودع GGUF الافتراضي يحتوي عدة نسخ، لذلك إضافة vLLM GGUF
+# تختار Q4_K_M فقط وتنزّلها عند تشغيل الخادم. الموديلات الأخرى تستعمل
+# تنزيل snapshot المعتاد قبل الإقلاع. الملفات تبقى في كاش Hugging Face.
+VLLM_MODEL="${MODEL_NAME}"
+VLLM_EXTRA_ARGS=()
+if [ "${MODEL_NAME}" = "lmstudio-community/gemma-4-E4B-it-GGUF" ]; then
+    # The GGUF plugin selects and downloads only Q4_K_M (and its projector).
+    if ! python3 -c "import vllm_gguf_plugin" 2>/dev/null; then
+        echo "==> Installing vLLM GGUF plugin..."
+        python3 -m pip install -q 'setuptools>=77,<81' wheel ninja
+        python3 -m pip install --no-build-isolation \
+            'git+https://github.com/vllm-project/vllm-gguf-plugin.git'
+    fi
+    VLLM_MODEL="${MODEL_NAME}:Q4_K_M"
+    VLLM_EXTRA_ARGS=(--tokenizer google/gemma-4-E4B-it --served-model-name "${MODEL_NAME}")
+    echo "==> vLLM will download ${VLLM_MODEL} to the Hugging Face cache..."
+else
+    echo "==> Downloading model ${MODEL_NAME} (skipped if already cached)..."
+    MODEL_NAME="${MODEL_NAME}" python3 -c '
 import os
 from huggingface_hub import snapshot_download
-snapshot_download('${MODEL_NAME}', token=os.environ.get('HF_TOKEN') or None)
-"
+snapshot_download(os.environ["MODEL_NAME"], token=os.environ.get("HF_TOKEN") or None)
+'
+fi
 
 # ── 6) إصلاحات بيئة CUDA ─────────────────────────────────────────────────────
 # الشرح: flashinfer (يستعمله vLLM للـ sampling) يحتاج nvcc لتجميع كيرنلات
@@ -109,11 +121,11 @@ sleep 1
 #   --max-num-seqs              : أقصى طلبات متزامنة.
 #   --enable-prefix-caching     : يعيد استعمال حسابات البادئة المشتركة (مثل system prompt) بين الطلبات — تسريع كبير.
 #   --enable-auto-tool-choice / --tool-call-parser gemma4 : تفعيل tool calling لموديلات Gemma 4.
-#       ⚠️ إذا غيّرت الموديل لعائلة ثانية، بدّل الـ parser أو احذف السطرين.
+#       ⚠️ الوكيل كله يشتغل بالأدوات، فلا تحذف السطرين. إذا غيّرت الموديل لعائلة ثانية، بدّل الـ parser.
 # $! يحفظ رقم العملية (PID) حتى نراقبها.
 echo "==> Starting vLLM on port ${VLLM_PORT} (model: ${MODEL_NAME})..."
-python3 -m vllm.entrypoints.openai.api_server \
-    --model "${MODEL_NAME}" \
+vllm serve "${VLLM_MODEL}" \
+    "${VLLM_EXTRA_ARGS[@]}" \
     --host 127.0.0.1 \
     --port "${VLLM_PORT}" \
     --max-model-len "${MAX_MODEL_LEN}" \

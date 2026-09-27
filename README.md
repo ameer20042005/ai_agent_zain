@@ -4,10 +4,11 @@
 > confirmed transaction against a mock wallet API. It asks instead of guessing, never executes without an
 > explicit confirmation card, cannot double-pay on retries, and says honestly when a payment fails.
 > Design, safety proofs, failure modes and model/data disclosure: **[docs/AGENT.md](docs/AGENT.md)**.
-> Test-set results: **[eval/results/report.md](eval/results/report.md)** (88 cases, 0 unsafe executions).
+> Test set: 88 Iraqi-Arabic cases scored on the wallet ledger (`python -m eval.run_eval` → `eval/results/report.md`).
 
-وكيل دفع فواتير وتحويل فلوس باللهجة العراقية، مبني فوق باك اند **FastAPI + vLLM**: جملة وحدة (مكتوبة أو
-محچية) → فهم الطلب → أسئلة توضيح إذا أكو غموض → بطاقة تأكيد → تنفيذ على محفظة وهمية (SQLite) → نتيجة صادقة.
+وكيل دفع فواتير وتحويل فلوس باللهجة العراقية، مبني فوق باك اند **FastAPI + vLLM**: الموديل يحچي ويا المستخدم
+بحرية ويستدعي أدوات (بطاقة تحويل، بطاقة فاتورة، السجل)، والكود يحرس الفلوس: ما يتنفّذ شي إلا بزر «أكّد»
+على بطاقة أرقامها من المحفظة، على محفظة وهمية (SQLite)، وبدون خصم مكرر.
 
 | الوثيقة | المحتوى |
 |---|---|
@@ -15,20 +16,20 @@
 | [docs/AGENT.md](docs/AGENT.md) | تصميم الوكيل، بطاقة التأكيد، منع الدفع المكرر، أنماط الفشل، الإفصاح (بالإنجليزي للحكّام) |
 | [docs/API.md](docs/API.md) | مرجع الإيند بوينتات (الوكيل + المحفظة) مع أمثلة `curl` |
 | [docs/DEPLOY.md](docs/DEPLOY.md) | النشر على RunPod خطوة بخطوة، أوامر التشغيل اليومية، المشاكل الشائعة |
-| [eval/results/report.md](eval/results/report.md) | نتائج مجموعة الاختبار مع نص كل محادثة |
+| `eval/results/report.md` | نتائج مجموعة الاختبار مع نص كل محادثة (ينكتب بعد تشغيل `eval.run_eval`) |
 
-## تشغيل الوكيل بسرعة (بدون GPU)
+## تشغيل الوكيل محلياً (Windows + LM Studio)
 
-```bash
-python -m venv venv && venv/Scripts/activate      # Linux/Mac: source venv/bin/activate
-pip install -r requirements-dev.txt
-uvicorn app.main:app --port 8000                 # افتح http://localhost:8000/
-python -m eval.run_eval                          # مجموعة الاختبار → eval/results/report.md
-pytest -q                                        # الاختبارات
+الوكيل يحتاج موديل شغّال. على جهازك: افتح LM Studio → Developer → حمّل الموديل → Start Server، بعدين:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File start_local.ps1          # افتح http://localhost:8000/
+venv\Scripts\python -m eval.run_eval --base-url http://localhost:8000   # مجموعة الاختبار → eval/results/report.md
+venv\Scripts\python -m pytest -q                                  # الاختبارات (ما تحتاج موديل)
 ```
 
-بدون GPU الوكيل يفهم الطلبات بالقواعد (الوضع الافتراضي `NLU_MODE=auto` يرجع للقواعد لما الموديل مو جاهز)؛
-على سيرفر GPU (`bash start.sh`) يستعمل الموديل تلقائياً. ضمانات الأمان نفسها بالحالتين.
+بدون موديل الصفحة تشتغل بس الوكيل يرد «الموديل مو شغّال» وما ينفّذ شي. على سيرفر GPU (`bash start.sh`)
+نفس الكود يستعمل vLLM. ضمانات الأمان بالكود، فهي نفسها بالحالتين.
 
 ---
 
@@ -51,34 +52,34 @@ pytest -q                                        # الاختبارات
 ```
 ai_agent_zain/
 ├── start.sh                 سكربت الإقلاع: تنصيب → تنزيل الموديل → تشغيل vLLM → تشغيل FastAPI
+├── start_local.ps1          التشغيل المحلي على Windows: FastAPI فوق LM Studio بدل vLLM
 ├── requirements.txt         متطلبات التشغيل (vLLM يثبّته start.sh)
 ├── requirements-dev.txt     + pytest
 ├── app/
-│   ├── config.py            كل الإعدادات: الموديل، المنافذ، المحفظة، وضع الفهم، مهلة التأكيد
+│   ├── config.py            كل الإعدادات: الموديل، المنافذ، المحفظة، مهلة التأكيد
 │   ├── engine.py            عميل vLLM: فحص الجاهزية + chat() + generate()
 │   ├── main.py              تطبيق FastAPI: الصفحة، /health، /status، تركيب المحفظة على /wallet
-│   ├── agent/               الوكيل
-│   │   ├── core.py          آلة الحالات: طلب → أسئلة → بطاقة تأكيد → تنفيذ → نتيجة
-│   │   ├── nlu.py           فهم الطلب: الموديل (guided JSON) + القواعد كاحتياط
-│   │   ├── amounts.py       استخراج المبالغ العراقية ("ربع مليون"، "خمس تلاف") بالكود
-│   │   ├── resolver.py      مطابقة المستلم والفاتورة — المطابقة الأكيدة فقط، والباقي سؤال
-│   │   ├── textnorm.py      تطبيع النص العربي/العراقي
-│   │   ├── wallet_client.py عميل المحفظة: Idempotency-Key + إعادة محاولة + تسوية
-│   │   └── messages.py      كل رسائل المستخدم (قوالب ثابتة بالعراقي)
+│   ├── assistant/           الوكيل
+│   │   ├── agent.py         حلقة الموديل ↔ الأدوات + التنفيذ (المكان الوحيد اللي تتحرك بيه الفلوس)
+│   │   ├── tools.py         الأدوات، البرومبت الحي، حرّاس المبلغ والرقم، بناء بطاقة التأكيد
+│   │   ├── dialect.py       قسم اللهجة العراقية بالبرومبت
+│   │   ├── amounts.py       استخراج المبالغ العراقية ("ربع مليون"، "خمس تلاف") — يستعمله حارس المبلغ
+│   │   ├── textnorm.py      تطبيع النص العربي/العراقي + استخراج رقم الهاتف
+│   │   └── wallet_client.py عميل المحفظة: Idempotency-Key + إعادة محاولة + تسوية
 │   ├── wallet/              المحفظة الوهمية
 │   │   ├── api.py           واجهة HTTP (/wallet/...) + حقن الأعطال للاختبار
 │   │   ├── service.py       قواعد العمل + التنفيذ بدون تكرار (idempotency)
 │   │   └── db.py            جداول SQLite + تحميل البذرة
 │   └── endpoints/
 │       ├── __init__.py      قائمة all_routers — سجّل راوتراتك هنا
-│       ├── agent.py         /agent/message، /agent/confirm، /agent/cancel
+│       ├── assistant.py     /assistant/message، /assistant/confirm، /assistant/cancel
 │       └── chat.py          إيند بوينت افتراضي: POST /chat
 ├── data/
 │   ├── wallet_schema.json   المخطط اللي انولّدت منه بيانات المحفظة
 │   ├── wallet_seed.json     بيانات الاختبار: مستخدمين، أسماء مكررة ومتشابهة، فواتير، أرصدة، سجل
 │   └── test_requests.jsonl  مجموعة الاختبار (88 طلب بالعراقي)
-├── eval/run_eval.py         مشغّل مجموعة الاختبار + التقرير
-├── tests/                   اختبارات pytest (المبالغ، منع التكرار، مسار الموديل، المجموعة كاملة)
+├── eval/run_eval.py         مشغّل مجموعة الاختبار (يحتاج موديل شغّال) + التقرير
+├── tests/                   اختبارات pytest بموديل وهمي (المبالغ، منع التكرار، حرّاس الوكيل، مشغّل التقييم)
 └── static/index.html        واجهة المحادثة + بطاقة التأكيد + لوحة المحفظة + أدوات العرض
 ```
 
@@ -96,9 +97,9 @@ ai_agent_zain/
 | المكوّن | المطلوب |
 |---|---|
 | نظام التشغيل | Linux (مُختبر على Ubuntu 22.04). vLLM ما يشتغل على Windows مباشرة |
-| GPU | NVIDIA بذاكرة كافية للموديل. الموديل الافتراضي (Gemma 4 12B بـ bf16) يحتاج ~24GB للأوزان + مساحة KV cache → **40GB+** (مثل A40 48GB) |
-| القرص | **60GB+** (torch/vLLM ~10-15GB + الموديل ~24GB) |
-| توكن Hugging Face | مطلوب إذا الموديل gated (مثل Gemma) أو المستودع خاص |
+| GPU | NVIDIA بذاكرة كافية لنسخة Gemma 4 E4B GGUF Q4_K_M (~5.34GB على القرص) مع مساحة للـ KV cache؛ A40 48GB خيار مريح |
+| القرص | مساحة لـ torch/vLLM وإضافة GGUF وملف الموديل (~5.34GB) والكاش |
+| توكن Hugging Face | مطلوب فقط إذا بدّلت إلى مستودع خاص أو gated |
 
 ---
 
@@ -124,7 +125,7 @@ bash start.sh
 2. يثبّت `requirements.txt`.
 3. يثبّت **vLLM nightly** (فيه دعم Gemma 4) إذا vLLM مو موجود.
 4. يقرأ الإعدادات من `app/config.py`.
-5. **ينزّل الموديل** من Hugging Face للكاش (`~/.cache/huggingface`) — التشغيلات اللاحقة ما تعيد التنزيل.
+5. **ينزّل الموديل** من Hugging Face للكاش (`~/.cache/huggingface`). للموديل الافتراضي يثبّت إضافة GGUF ويختار نسخة `Q4_K_M` فقط؛ التشغيلات اللاحقة تستعمل الكاش.
 6. يطبّق إصلاحات بيئة CUDA.
 7. يقتل أي تشغيلة سابقة عالقة.
 8. يشغّل خادم vLLM بالخلفية (لوقه بـ `/tmp/vllm_boot.log`).
@@ -146,8 +147,9 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8000
 ```
 
-الصفحة والإيند بوينتات تشتغل، بس `model_ready` يبقى `false` و `POST /chat` يرجع `503` لأن ماكو خادم vLLM.
-إذا عندك خادم vLLM شغّال بمكان ثاني (أو أي خادم متوافق مع OpenAI)، غيّر `vllm_base_url` بـ `app/config.py` ليشير له.
+الصفحة والإيند بوينتات تشتغل، بس `model_ready` يبقى `false`: `POST /chat` يرجع `503` والوكيل يرد «الموديل مو شغّال»
+لأن ماكو خادم vLLM. إذا عندك خادم متوافق مع OpenAI بمكان ثاني (vLLM أو LM Studio)، وجّه له `VLLM_BASE_URL`
+و`MODEL_NAME` بمتغيرات البيئة (مثل ما يسوي `start_local.ps1`).
 
 ---
 
@@ -157,7 +159,7 @@ uvicorn app.main:app --reload --port 8000
 
 | الحقل | الافتراضي | الوصف |
 |---|---|---|
-| `model_name` | `ameer4wisam/gemma-iraqi-10k-merged` | مستودع الموديل على Hugging Face. نفس الاسم يُرسل بحقل `model` بكل طلب |
+| `model_name` | `lmstudio-community/gemma-4-E4B-it-GGUF` | مستودع الموديل على Hugging Face. يحمّل `Q4_K_M` افتراضياً ويُرسل اسم المستودع بحقل `model` بكل طلب |
 | `vllm_base_url` | `http://127.0.0.1:18001/v1` | عنوان خادم vLLM. لازم المنفذ يطابق `vllm_port` |
 | `hf_token` | من متغير البيئة `HF_TOKEN` | توكن Hugging Face — لا تكتبه بالكود |
 | `gpu_memory_utilization` | `0.85` | نسبة VRAM اللي يحجزها vLLM (أوزان + KV cache) |
@@ -169,14 +171,13 @@ uvicorn app.main:app --reload --port 8000
 | `wallet_db_path` | `data/wallet.sqlite3` (أو `WALLET_DB_PATH`) | ملف قاعدة المحفظة الوهمية |
 | `wallet_base_url` | فارغ (أو `WALLET_BASE_URL`) | فارغ = المحفظة المركّبة بنفس السيرفر؛ رابط = محفظة مستقلة عبر الشبكة |
 | `default_user_id` | `u1` | مستخدم الجلسات إذا الطلب ما حدد `user_id` |
-| `nlu_mode` | `auto` (أو `NLU_MODE`) | `auto` الموديل إذا جاهز وإلا القواعد · `llm` · `rules` |
 | `confirmation_ttl_seconds` | `300` | مهلة بطاقة التأكيد |
 | `wallet_retry_attempts` | `3` | محاولات التنفيذ (بنفس المفتاح) عند عطل الشبكة |
 
 ### تغيير الموديل
 
 1. بدّل `model_name` بـ `app/config.py`.
-2. إذا الموديل الجديد **مو** من عائلة Gemma 4، بدّل أو احذف سطري `--enable-auto-tool-choice` و `--tool-call-parser gemma4` بـ `start.sh` (الـ parser خاص بكل عائلة موديلات).
+2. إذا الموديل الجديد **مو** من عائلة Gemma 4، بدّل `--tool-call-parser gemma4` بـ `start.sh` للـ parser مال عائلته (الـ parser خاص بكل عائلة موديلات). **لا تحذف** سطري tool calling — الوكيل كله يشتغل بالأدوات، فلازم الموديل يدعمها.
 3. إذا الموديل مدعوم بإصدار vLLM المستقر، تقدر تبدّل خطوة التنصيب بـ `start.sh` إلى `pip install vllm` بدل nightly.
 4. راجع `max_model_len` و `gpu_memory_utilization` حسب حجم الموديل وذاكرة الـ GPU.
 

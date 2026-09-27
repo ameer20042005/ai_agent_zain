@@ -9,19 +9,19 @@
 
 ### 1. توكن Hugging Face
 
-مطلوب إذا الموديل gated (مثل Gemma) أو المستودع خاص:
+الموديل الافتراضي GGUF مستودعه عام، فلا يحتاج توكن. إذا بدّلت إلى مستودع خاص أو gated:
 
 1. افتح صفحة الموديل الأساس على Hugging Face واضغط **Agree and access repository** (للموديلات gated).
 2. تأكد إن حسابك يقدر يفتح مستودع الموديل المحدد بـ `model_name` في `app/config.py`.
 3. من https://huggingface.co/settings/tokens ولّد **Access Token** بصلاحية **Read**.
 
-بدون توكن صحيح، خطوة تنزيل الموديل تفشل بخطأ `401` / `403`.
+إذا المستودع خاص أو gated وبدون توكن صحيح، خطوة التنزيل تفشل بخطأ `401` / `403`.
 
 ### 2. اختيار الـ GPU
 
-| الموديل | الأوزان (bf16) | GPU موصى به |
+| الموديل | حجم ملف Q4_K_M | GPU موصى به |
 |---|---|---|
-| 12B (الافتراضي) | ~24GB | **40GB+** — A40 (48GB) خيار ممتاز سعر/أداء |
+| Gemma 4 E4B GGUF (الافتراضي) | ~5.34GB | A40 (48GB) خيار مريح؛ يمكن استعمال بطاقة أصغر إذا تكفي الأوزان والـ KV cache |
 
 الباقي من الذاكرة بعد الأوزان يروح لـ KV cache، وهو اللي يحدد عدد الطلبات المتزامنة.
 
@@ -35,7 +35,7 @@
 
 | الحقل | القيمة |
 |---|---|
-| **GPU** | A40 (48GB) أو أي GPU بـ 40GB+ |
+| **GPU** | A40 (48GB) أو بطاقة بذاكرة كافية للموديل والـ KV cache |
 | **Container Image** | `ubuntu:22.04` |
 | **Container Disk** | 60GB+ |
 | **Expose HTTP Ports** | `8000` |
@@ -60,7 +60,7 @@ cd /workspace/app
 
 ### 4) التوكن
 
-إذا ما ضفته كـ Environment Variable بالخطوة 1:
+إذا بدّلت إلى مستودع خاص أو gated وما ضفت التوكن كـ Environment Variable بالخطوة 1:
 
 ```bash
 export HF_TOKEN=hf_xxx
@@ -88,13 +88,14 @@ tail -f /tmp/vllm_boot.log    # لوق vLLM نفسه (تحميل الأوزان)
 
 `Ctrl+C` يوقف `tail` فقط، ما يمس السيرفر.
 
-**أول تشغيل ياخذ وقت أطول** — تنصيب Python/pip + vLLM nightly + torch، ثم تنزيل الموديل (~24GB)، ثم تحميله على الـ GPU. التشغيلات اللاحقة أسرع بكثير (كل شي مثبّت ومنزّل).
+**أول تشغيل ياخذ وقت أطول** — تنصيب Python/pip + vLLM nightly + torch وإضافة GGUF، ثم تنزيل نسخة Q4_K_M (~5.34GB) وتحميلها على الـ GPU. التشغيلات اللاحقة أسرع لأن الملفات بالكاش.
 
 الترتيب اللي راح تشوفه باللوق:
 
 ```
 ==> vLLM not found — installing the nightly wheel...        (أول مرة فقط)
-==> Downloading model ... (skipped if already cached)
+==> Installing vLLM GGUF plugin...                       (أول مرة فقط)
+==> vLLM will download ...:Q4_K_M to the Hugging Face cache...
 ==> Starting vLLM on port 18001 ...
 ==> vLLM running (PID ...), loading weights — watch /tmp/vllm_boot.log
 ==> Starting FastAPI on port 8000...

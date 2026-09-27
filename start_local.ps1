@@ -36,7 +36,7 @@ if (-not (Test-Path $python)) {
 #   VLLM_BASE_URL        : وين خادم الموديل (هنا LM Studio).
 #   MODEL_NAME           : الاسم اللي يُرسل بحقل "model" بكل طلب.
 #   LLM_REASONING_EFFORT : "none" يطفي تفكير Gemma 4 حتى ما ياكل max_tokens
-#                          ويقطع الـ JSON مالت فهم الطلب.
+#                          ويقطع الرد أو وسائط الأداة (JSON).
 # المتغيرات تخص هذي الجلسة فقط، وتنمسح لما تسكّر الطرفية.
 $env:VLLM_BASE_URL = $BaseUrl
 $env:MODEL_NAME = $Model
@@ -45,8 +45,8 @@ $env:PYTHONIOENCODING = "utf-8"
 
 # ── 3) فحص LM Studio ─────────────────────────────────────────────────────────
 # الشرح: نسأل /models حتى نتأكد إن خادم LM Studio شغّال وإن الموديل المطلوب
-# موجود عنده. إذا مو شغّال ما نوقف: FastAPI يشتغل والوكيل يستعمل القواعد
-# لحد ما الموديل يجهز (فاحص الجاهزية بـ engine.py يلتقطه تلقائياً).
+# موجود عنده. إذا مو شغّال ما نوقف: FastAPI يشتغل والوكيل يرد "الموديل مو
+# شغّال" لحد ما الموديل يجهز (فاحص الجاهزية بـ engine.py يلتقطه تلقائياً).
 try {
     $models = Invoke-RestMethod -Uri "$BaseUrl/models" -TimeoutSec 5
     $ids = @($models.data | ForEach-Object { $_.id })
@@ -55,7 +55,7 @@ try {
         Write-Warning "Model '$Model' is not in LM Studio - load it, or pass -Model <id>"
     }
 } catch {
-    Write-Warning "LM Studio is not reachable at $BaseUrl - start its server (Developer tab). The agent uses rules until then."
+    Write-Warning "LM Studio is not reachable at $BaseUrl - start its server (Developer tab). The agent replies 'model offline' until then."
 }
 
 # ── 4) تشغيل FastAPI ─────────────────────────────────────────────────────────

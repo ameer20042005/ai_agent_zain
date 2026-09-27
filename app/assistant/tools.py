@@ -11,8 +11,8 @@
 # الشرح: الاستيرادات.
 #   - json: الموديل يرسل وسائط الأدوات كنص JSON.
 #   - uuid/time/datetime: رقم البطاقة (هو نفسه مفتاح الـ idempotency) ومهلتها.
-#   - parse_amounts/find_phone/mask_phone: نفس أدوات الوكيل القديم — نستعملها
-#     كحارس يتأكد إن المبلغ والرقم مذكورين فعلاً بكلام المستخدم.
+#   - parse_amounts/find_phone: حرّاس يتأكدون إن المبلغ والرقم مذكورين فعلاً
+#     بكلام المستخدم (مو من خيال الموديل).
 import json
 import time
 import uuid
@@ -20,11 +20,19 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Optional
 
-from app.agent.amounts import parse_amounts
-from app.agent.resolver import CATEGORY_NAMES, find_phone, mask_phone
-from app.agent.wallet_client import WalletClient
+from app.assistant.amounts import parse_amounts
 from app.assistant.dialect import IRAQI_DIALECT
+from app.assistant.textnorm import find_phone
+from app.assistant.wallet_client import WalletClient
 from app.config import settings
+
+# الشرح: أسماء فئات الفواتير بالعربي — تظهر بالبرومبت (قائمة الفواتير) وعلى البطاقة.
+CATEGORY_NAMES = {"electricity": "الكهرباء", "generator": "المولدة", "water": "الماء", "internet": "الإنترنت"}
+
+
+def mask_phone(phone: str) -> str:
+    """0770•••0002 — يكفي للتمييز بين شخصين على البطاقة بدون كشف الرقم كامل."""
+    return f"{phone[:4]}•••{phone[-4:]}" if phone and len(phone) >= 8 else (phone or "")
 
 
 # ---------------------------------------------------------------------------

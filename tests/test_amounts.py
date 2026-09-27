@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import pytest
 
-from app.agent.amounts import parse_amounts
+from app.assistant.amounts import parse_amounts
 
 
 @pytest.mark.parametrize("text, expected", [
