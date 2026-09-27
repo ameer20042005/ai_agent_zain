@@ -66,10 +66,6 @@ class WalletClient:
             params["idempotency_key"] = idempotency_key
         return await self._get(f"/users/{uid}/transactions", **params)
 
-    async def lookup_phone(self, phone: str) -> Optional[dict]:
-        resp = await self._client.get(f"/directory/{phone}")
-        return resp.json() if resp.status_code == 200 else None
-
     async def quote(self, uid: str, body: dict) -> dict:
         resp = await self._client.post(f"/users/{uid}/quotes", json=body)
         resp.raise_for_status()

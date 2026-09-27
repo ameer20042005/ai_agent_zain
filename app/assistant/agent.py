@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""الوكيل الحر: الموديل يدير المحادثة بنفسه ويستدعي الأدوات، والكود يحرس الفلوس.
+"""الوكيل الحر: الموديل الخام يدير المحادثة بنفسه ويستدعي الأدوات (قيوده بالبرومبت).
 
     رسالة المستخدم ──► الموديل ──► يرد بكلامه
                           │  ▲
@@ -8,8 +8,9 @@
 
     زر "أكّد" ──► الكود ينفّذ بالمحفظة (بمفتاح البطاقة) ──► حدث للموديل ──► يحچي النتيجة
 
-ماكو آلة حالات ولا قوالب ردود — الموديل يقرر شنو يسأل وشلون يصيغ. اللي يبقى
-بالكود هو اللي ما نثق بيه للموديل: التنفيذ نفسه، أرقام البطاقة، ومنع الخصم المكرر.
+ماكو آلة حالات ولا قوالب ردود ولا حرّاس على وسائط الأدوات — الموديل يقرر شنو
+يسأل، وأي مبلغ ولمن، وشلون يصيغ. اللي يبقى بالكود هو عمل التطبيق نفسه: التنفيذ
+بزر أكّد، أرقام البطاقة من المحفظة، ومنع الخصم المكرر.
 """
 
 # الشرح: الاستيرادات.
@@ -69,7 +70,6 @@ _TEMPERATURE = 0.4
 
 # الشرح: كل جلسة تحفظ:
 #   - history: المحادثة بصيغة OpenAI (user / assistant / tool / أحداث التطبيق).
-#   - user_texts: كلام المستخدم الخام — حارس المبلغ يفحص بيه.
 #   - cards: كل بطاقات التأكيد (المعلّقة والمنتهية)، بالرقم.
 #   - lock: يمنع طلبين بنفس الوقت على نفس الجلسة (ضغطتين سريعتين على أكّد).
 @dataclass
@@ -77,7 +77,6 @@ class Session:
     id: str
     user_id: str
     history: List[dict] = field(default_factory=list)
-    user_texts: List[str] = field(default_factory=list)
     cards: Dict[str, Card] = field(default_factory=dict)
     lock: asyncio.Lock = field(default_factory=asyncio.Lock)
     updated_at: float = field(default_factory=time.time)
@@ -128,7 +127,6 @@ class Assistant:
             return []
         if not llm_engine.ready:
             return [_msg("model_offline", "error", "الموديل مو شغّال هسه — شغّل LM Studio وجرّب مرة ثانية. ما تنفّذ شي.")]
-        s.user_texts.append(text)
         s.history.append({"role": "user", "content": text})
 
         pending = s.pending()
